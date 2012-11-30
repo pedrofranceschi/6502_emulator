@@ -2,7 +2,7 @@
 
 // NEVER free program! (TODO memcpy it)
 void initializeCPU(CPU *cpu, char *program, int programLength) {
-	cpu->memory = malloc(sizeof(char) * MEMORY_SIZE);
+	cpu->memory = malloc(sizeof(unsigned char) * MEMORY_SIZE);
 	cpu->program = program;
 	cpu->programLength = programLength;
 	cpu->cycles = cpu->pc = cpu->sp = cpu->a = cpu->x = cpu->y = cpu->ps = 0; // TODO: move to reset function
@@ -46,11 +46,11 @@ void updateStatusFlag(CPU *cpu, char operationResult) { // operationResult can b
 void step(CPU *cpu) { // main code is here
 	char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	switch(currentOpcode) {
-		case 0x0: { // BRK impl
+		case 0x00: { // BRK impl
 			break;
 		}
-		case 0x01: { // ORA X,ind
-			cpu->a |= cpu->memory[cpu->program[cpu->pc++] + cpu->x]; // OR with accumulator and memory at (next byte after opcode + X)
+		case 0x01: { // ORA ind,X
+			cpu->a |= cpu->memory[cpu->program[cpu->pc++]] + cpu->x; // OR with accumulator and memory at (next byte after opcode) + X
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			break;
@@ -76,10 +76,57 @@ void step(CPU *cpu) { // main code is here
 		case 0x0A: { // ASL abs
 			break;
 		}
-		case 0x0D: {
+		case 0x0D: { // ORA abs
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
-			// int mempos = combine low_byte and high_byte
+			int mem_location = (high_byte << 0x8) | low_byte; // joins high byte with low byte;
+			
+			cpu->a |= cpu->memory[mem_location];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 4;
+			
+			break;
+		}
+		case 0x0E: { // ASL abs
+			break;
+		}
+		case 0x10: { // BPL rel
+			break;
+		}
+		case 0x11: { // ORA ind,Y
+			int mem_initial_location = cpu->program[cpu->pc++];
+			int mem_final_location = mem_initial_location + cpu->y;
+			
+			printf("mem_final_location: %i\n", mem_final_location);
+
+			cpu->a |= cpu->memory[mem_final_location];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 5;
+			
+			printf("(mem_initial_location): %i\n", mem_initial_location);
+			printf("(mem_final_location): %i\n", mem_final_location);
+			printf("CHARS\n");
+			
+			// 0x1ff % 0xFF 1
+			
+			// printbinchar(mem_initial_location);
+			// printbinchar(mem_final_location);
+			
+			int page_boundary = mem_initial_location + (mem_initial_location % PAGE_SIZE); // needs to be fixed
+			printf("page_boundary: %i\n", page_boundary);
+			
+			if(mem_final_location > page_boundary) {
+				// page boundary crossed
+				printf("CROSSING BOUNDARIES\n");
+				cpu->cycles++;
+			}
+			
+			break;
+		}
+		case 0x15: { // ORA zpg,X
+			break;
+		}
+		case 0x16: { // ASL zpg,X
 			break;
 		}
 	}
@@ -88,21 +135,21 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x09, 0x39 };
+	const char program[] = { 0x11, 0x100 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	// char *buf = malloc(sizeof(char));
-	// buf[0] = 0xff;
-	// writeMemory(&cpu, buf, 0x39, 1);
-	// free(buf);
+	char *buf = malloc(sizeof(char));
+	buf[0] = 0x1f;
+	writeMemory(&cpu, buf, 0x102, 1);
+	free(buf);
 	
-	// cpu.x = 0x6;
+	cpu.y = 0x1;
 	cpu.a = 0x5;
 	
 	step(&cpu);
 
-	printMemory(&cpu);
+	// printMemory(&cpu);
 	printf("cpu->a: %i\n", cpu.a);
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->cycles: %i\n", cpu.cycles);
