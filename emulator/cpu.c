@@ -46,34 +46,42 @@ void updateStatusFlag(CPU *cpu, char operationResult) { // operationResult can b
 void step(CPU *cpu) { // main code is here
 	char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	switch(currentOpcode) {
-		case 0x0: // BRK impl
-		break;
-		case 0x01: // ORA X,ind
+		case 0x0: { // BRK impl
+			break;
+		}
+		case 0x01: { // ORA X,ind
 			cpu->a |= cpu->memory[cpu->program[cpu->pc++] + cpu->x]; // OR with accumulator and memory at (next byte after opcode + X)
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 6; // this operation takes 6 cycles;
-		break;
-		case 0x05: // ORA zpg
+			break;
+		}
+		case 0x05: { // ORA zpg
 			cpu->a |= cpu->memory[cpu->program[cpu->pc++]]; // OR with memory content at (next byte after opcode in zero page)
 			updateStatusFlag(cpu, cpu->a);
-			cpu->cycles += 2;
-		break;
-		case 0x06: // ASL zpg
-		break;
-		case 0x08: // PHP impl
-		break;
-		case 0x09: // ORA immediate
+			cpu->cycles += 3;
+			break;
+		}
+		case 0x06: { // ASL zpg
+			break;
+		}
+		case 0x08: { // PHP impl
+			break;
+		}
+		case 0x09: { // ORA immediate
 			cpu->a |= cpu->program[cpu->pc++]; // just OR with next byte after opcode
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 2;
-		break;
-		case 0x0A: // ASL abs
-		break;
-		case 0x0D:
+			break;
+		}
+		case 0x0A: { // ASL abs
+			break;
+		}
+		case 0x0D: {
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
 			// int mempos = combine low_byte and high_byte
-		break;
+			break;
+		}
 	}
 }
 
