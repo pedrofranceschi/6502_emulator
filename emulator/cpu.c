@@ -43,6 +43,10 @@ void updateStatusFlag(CPU *cpu, char operationResult) { // operationResult can b
 	cpu->ps = (operationResult & 0x80 != 0 ? cpu->ps | 0x80 : cpu-> ps & 0x7F ); // sets negative flag (bit 7 of operationResult is set)
 }
 
+int join_bytes(int low_byte, int high_byte) {
+	return (high_byte << 0x8) | low_byte;
+}
+
 void step(CPU *cpu) { // main code is here
 	char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	switch(currentOpcode) {
@@ -80,7 +84,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x0D: { // ORA abs
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
-			int mem_location = (high_byte << 0x8) | low_byte; // joins high byte with low byte;
+			int mem_location = join_bytes(low_byte, high_byte);
 			
 			cpu->a |= cpu->memory[mem_location];
 			updateStatusFlag(cpu, cpu->a);
@@ -124,22 +128,45 @@ void step(CPU *cpu) { // main code is here
 		case 0x16: { // ASL zpg,X
 			break;
 		}
+		case 0x18: { // CLC impl
+			break;
+		}
+		case 0x19:   // ORA abs,Y
+		case 0x1D: { // ORA abs,X
+			char low_byte = cpu->program[cpu->pc++];
+			char high_byte = cpu->program[cpu->pc++];
+			int absolute_address = join_bytes(low_byte, high_byte);
+			int mem_final_location = absolute_address + (currentOpcode == 0x19 ? cpu->y : cpu->x);
+			
+			cpu->a |= cpu->memory[mem_final_location];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 4;
+			
+			int page_boundary = absolute_address + (absolute_address % PAGE_SIZE);
+			
+			if(mem_final_location > page_boundary) {
+				// page boundary crossed, +1 CPU cycle
+				cpu->cycles++;
+			}
+			
+			break;
+		}
 	}
 }
 
 
 
 int main() {
-	const char program[] = { 0x15, 0xfd };
+	const char program[] = { 0x19, 0x01, 0x20 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char));
 	buf[0] = 0x29;
-	writeMemory(&cpu, buf, 0xfd, 1);
+	writeMemory(&cpu, buf, 0x2003, 1);
 	free(buf);
 	
-	cpu.y = 0x1;
+	cpu.x = 0x2;
 	cpu.a = 0x5;
 	
 	step(&cpu);
