@@ -98,50 +98,18 @@ void step(CPU *cpu) { // main code is here
 			int mem_initial_location = cpu->memory[cpu->program[cpu->pc++]];
 			int mem_final_location = mem_initial_location + cpu->y;
 			
-			printf("mem_initial_location: %i\n", mem_initial_location);
-			
 			cpu->a |= cpu->memory[mem_final_location];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 5;
 			
 			int page_boundary = mem_initial_location + (mem_initial_location % PAGE_SIZE);
 			
-			printf("page_boundary: %i\n", page_boundary);
-			
 			if(mem_final_location > page_boundary) {
-				// page boundary crossed
+				// page boundary crossed, +1 CPU cycles
 				cpu->cycles++;
-				printf("page boundary crossed\n");
 			}
 			
-			// int mem_initial_location = cpu->program[cpu->pc++];
-			// int mem_final_location = mem_initial_location + cpu->y;
-			// 
-			// printf("mem_final_location: %i\n", mem_final_location);
-			// 
-			// cpu->a |= cpu->memory[mem_final_location];
-			// updateStatusFlag(cpu, cpu->a);
-			// cpu->cycles += 5;
-			// 
-			// printf("(mem_initial_location): %i\n", mem_initial_location);
-			// printf("(mem_final_location): %i\n", mem_final_location);
-			// printf("CHARS\n");
-			// 
-			// // 0x1ff % 0xFF 1
-			// 
-			// // printbinchar(mem_initial_location);
-			// // printbinchar(mem_final_location);
-			// 
-			// int page_boundary = mem_initial_location + (mem_initial_location % PAGE_SIZE); // needs to be fixed
-			// printf("page_boundary: %i\n", page_boundary);
-			// 
-			// if(mem_final_location > page_boundary) {
-			// 	// page boundary crossed
-			// 	printf("CROSSING BOUNDARIES\n");
-			// 	cpu->cycles++;
-			// }
-			// 
-			// break;
+			break;
 		}
 		case 0x15: { // ORA zpg,X
 			break;
