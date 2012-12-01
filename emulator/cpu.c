@@ -105,13 +105,20 @@ void step(CPU *cpu) { // main code is here
 			int page_boundary = mem_initial_location + (mem_initial_location % PAGE_SIZE);
 			
 			if(mem_final_location > page_boundary) {
-				// page boundary crossed, +1 CPU cycles
+				// page boundary crossed, +1 CPU cycle
 				cpu->cycles++;
 			}
 			
 			break;
 		}
 		case 0x15: { // ORA zpg,X
+			int mem_location = cpu->program[cpu->pc++] + cpu->x;
+			mem_location &= 0xFF; // removes anything bigger than 0xFF (only 1 byte is allowed)
+			
+			cpu->a |= cpu->memory[mem_location];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x16: { // ASL zpg,X
@@ -123,15 +130,13 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x11, 0xfd }; // 0xfe to test page boundary crossing
+	const char program[] = { 0x15, 0xfd };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 3);
-	buf[0] = 0xfe; // 0xff to test page boundary crossing
-	buf[1] = 0x0;
-	buf[2] = 0x24;
-	writeMemory(&cpu, buf, 0xfd, 3); // 0xfe to test page boundary crossing
+	char *buf = malloc(sizeof(char));
+	buf[0] = 0x29;
+	writeMemory(&cpu, buf, 0xfd, 1);
 	free(buf);
 	
 	cpu.y = 0x1;

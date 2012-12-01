@@ -13,7 +13,7 @@ typedef struct {
 	// REGISTERS
 	int pc; // program counter is two bytes
 	int cycles;
-	char sp, a, x, y, ps; // stack pointer, accumulator, x register, y register, processor status flag;	
+	unsigned char sp, a, x, y, ps; // stack pointer, accumulator, x register, y register, processor status flag;	
 	
 	// processor status flags:
 	// N V - B D I Z C
