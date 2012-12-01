@@ -50,7 +50,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x01: { // ORA ind,X
-			cpu->a |= cpu->memory[cpu->program[cpu->pc++]] + cpu->x; // OR with accumulator and memory at (next byte after opcode) + X
+			// cpu->a |= cpu->memory[cpu->program[cpu->pc++]] + cpu->x; // OR with accumulator and memory at (next byte after opcode) + X
+			cpu->a |= cpu->memory[cpu->memory[cpu->program[cpu->pc++] + cpu->x]];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			break;
@@ -94,34 +95,53 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x11: { // ORA ind,Y
-			int mem_initial_location = cpu->program[cpu->pc++];
+			int mem_initial_location = cpu->memory[cpu->program[cpu->pc++]];
 			int mem_final_location = mem_initial_location + cpu->y;
 			
-			printf("mem_final_location: %i\n", mem_final_location);
-
+			printf("mem_initial_location: %i\n", mem_initial_location);
+			
 			cpu->a |= cpu->memory[mem_final_location];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 5;
 			
-			printf("(mem_initial_location): %i\n", mem_initial_location);
-			printf("(mem_final_location): %i\n", mem_final_location);
-			printf("CHARS\n");
+			int page_boundary = mem_initial_location + (mem_initial_location % PAGE_SIZE);
 			
-			// 0x1ff % 0xFF 1
-			
-			// printbinchar(mem_initial_location);
-			// printbinchar(mem_final_location);
-			
-			int page_boundary = mem_initial_location + (mem_initial_location % PAGE_SIZE); // needs to be fixed
 			printf("page_boundary: %i\n", page_boundary);
 			
 			if(mem_final_location > page_boundary) {
 				// page boundary crossed
-				printf("CROSSING BOUNDARIES\n");
 				cpu->cycles++;
+				printf("page boundary crossed\n");
 			}
 			
-			break;
+			// int mem_initial_location = cpu->program[cpu->pc++];
+			// int mem_final_location = mem_initial_location + cpu->y;
+			// 
+			// printf("mem_final_location: %i\n", mem_final_location);
+			// 
+			// cpu->a |= cpu->memory[mem_final_location];
+			// updateStatusFlag(cpu, cpu->a);
+			// cpu->cycles += 5;
+			// 
+			// printf("(mem_initial_location): %i\n", mem_initial_location);
+			// printf("(mem_final_location): %i\n", mem_final_location);
+			// printf("CHARS\n");
+			// 
+			// // 0x1ff % 0xFF 1
+			// 
+			// // printbinchar(mem_initial_location);
+			// // printbinchar(mem_final_location);
+			// 
+			// int page_boundary = mem_initial_location + (mem_initial_location % PAGE_SIZE); // needs to be fixed
+			// printf("page_boundary: %i\n", page_boundary);
+			// 
+			// if(mem_final_location > page_boundary) {
+			// 	// page boundary crossed
+			// 	printf("CROSSING BOUNDARIES\n");
+			// 	cpu->cycles++;
+			// }
+			// 
+			// break;
 		}
 		case 0x15: { // ORA zpg,X
 			break;
@@ -135,13 +155,15 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x11, 0x100 };
+	const char program[] = { 0x11, 0xfd }; // 0xfe to test page boundary crossing
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char));
-	buf[0] = 0x1f;
-	writeMemory(&cpu, buf, 0x102, 1);
+	char *buf = malloc(sizeof(char) * 3);
+	buf[0] = 0xfe; // 0xff to test page boundary crossing
+	buf[1] = 0x0;
+	buf[2] = 0x24;
+	writeMemory(&cpu, buf, 0xfd, 3); // 0xfe to test page boundary crossing
 	free(buf);
 	
 	cpu.y = 0x1;
