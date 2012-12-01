@@ -157,7 +157,7 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x19, 0x01, 0x20 };
+	const char program[] = { 0x1D, 0x01, 0x20 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
