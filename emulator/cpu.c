@@ -41,6 +41,9 @@ void freeCPU(CPU *cpu) {
 void updateStatusFlag(CPU *cpu, char operationResult) { // operationResult can be accumulator, X, Y or any registers
 	cpu->ps = (operationResult == 0 ? cpu->ps | 0x2 : cpu->ps & 0xFD ); // sets zero flag (bit 1)
 	cpu->ps = (operationResult & 0x80 != 0 ? cpu->ps | 0x80 : cpu-> ps & 0x7F ); // sets negative flag (bit 7 of operationResult is set)
+	
+	int carry_bit = operationResult & 0x100; // moves bit 8 to carry bit
+	cpu->ps = (carry_bit == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 }
 
 int join_bytes(int low_byte, int high_byte) {
@@ -97,7 +100,7 @@ void step(CPU *cpu) { // main code is here
 			int carry_bit = accumulator_byte & 0x100; // moves bit 8 to carry bit
 			cpu->ps = (carry_bit == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 			
-			accumulator_byte &= 0xFF;
+			accumulator_byte &= 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->a = accumulator_byte;
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 2;
@@ -116,6 +119,17 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x0E: { // ASL abs
+			char low_byte = cpu->program[cpu->pc++];
+			char high_byte = cpu->program[cpu->pc++];
+			int absolute_address = join_bytes(low_byte, high_byte);
+			int address_byte = cpu->memory[absolute_address];
+			address_byte <<= 0x1; // left shift
+			
+			updateStatusFlag(cpu, address_byte);
+			address_byte &= 0xFF; // 0xFF removes anything set in a bit > 8
+			cpu->memory[absolute_address] = address_byte;
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0x10: { // BPL rel
@@ -180,22 +194,20 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x0A };
+	const char program[] = { 0x0E, 0x01, 0x20 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	// char *buf = malloc(sizeof(char));
-	// buf[0] = 0x50;
-	// writeMemory(&cpu, buf, 0x4, 1);
-	// free(buf);
-	
-	cpu.a = 0x50;
+	char *buf = malloc(sizeof(char));
+	buf[0] = 0x25;
+	writeMemory(&cpu, buf, 0x2001, 1);
+	free(buf);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	
 	step(&cpu);
 
-	// printMemory(&cpu);
+	printMemory(&cpu);
 	printf("cpu->a: %i\n", cpu.a);
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->cycles: %i\n", cpu.cycles);
