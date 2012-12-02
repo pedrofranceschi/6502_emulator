@@ -142,12 +142,8 @@ void step(CPU *cpu) { // main code is here
 			int zeropage_byte = cpu->memory[zeropage_location];
 			zeropage_byte <<= 0x1; // left shift
 			
-			int carry_bit = zeropage_byte & 0x100; // moves bit 8 to carry bit
-			cpu->ps = (carry_bit == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
-			
-			zeropage_byte &= 0xFF; // 0xFF removes anything set in a bit > 8
-			cpu->memory[zeropage_location] = zeropage_byte;
 			updateStatusFlag(cpu, zeropage_byte);
+			cpu->memory[zeropage_location] = zeropage_byte & 0xFF; // 0xFF removes anything set in a bit > 8;
 			cpu->cycles += 5;
 			
 			break;
@@ -167,12 +163,8 @@ void step(CPU *cpu) { // main code is here
 			int accumulator_byte = cpu->a;
 			accumulator_byte <<= 0x1; // left shift
 			
-			int carry_bit = accumulator_byte & 0x100; // moves bit 8 to carry bit
-			cpu->ps = (carry_bit == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
-			
-			accumulator_byte &= 0xFF; // 0xFF removes anything set in a bit > 8
-			cpu->a = accumulator_byte;
 			updateStatusFlag(cpu, cpu->a);
+			cpu->a = accumulator_byte & 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->cycles += 2;
 			
 			break;
