@@ -94,6 +94,16 @@ int addressForZeroPageYAddressing(CPU *cpu, char byte) {
 	return (byte + cpu->y) & 0xFF; // removes anything bigger than 0xFF (only 1 byte is allowed)
 }
 
+int rotateByte(CPU *cpu, char byte, int isLeftShift) {	
+	byte = (isLeftShift == 1 ? byte << 1 : byte >> 1);
+	
+	if(cpu->ps & 0x1 != 0) { // carry bit is on
+		byte |= 0x1; // turn on bit 0 on operation byte (carry bit shifted on bit 0)
+	}
+	
+	return byte;
+}
+
 int addressForAbsoluteAddedAddressing(CPU *cpu, unsigned char low_byte, unsigned char high_byte, char adding, int *cycles) {
 	int absolute_address = joinBytes(low_byte, high_byte);
 	int mem_final_address = absolute_address + adding;
@@ -283,12 +293,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x26: { // ROL zpg
 			char zeropage_location = cpu->program[cpu->pc++];
-			int operation_byte = cpu->memory[zeropage_location];
-			operation_byte <<= 1;
-			
-			if(cpu->ps & 0x1 != 0) { // carry bit is on
-				operation_byte |= 0x1; // turn on bit 0 on operation byte (carry bit shifted on bit 0)
-			}
+			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 1);
 			
 			updateStatusFlag(cpu, operation_byte);
 			cpu->memory[zeropage_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
@@ -306,6 +311,12 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x2A: { // ROL accumulator
+			int operation_byte = rotateByte(cpu, cpu->a, 1);
+			
+			updateStatusFlag(cpu, operation_byte);
+			cpu->a = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x2C: { // BIT abs
@@ -364,25 +375,27 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x26, 0x07 };
+	const char program[] = { 0x2A };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0x0;
-	buf[1] = 0xF0;
-	writeMemory(&cpu, buf, 0x06, 2);
+	// char *buf = malloc(sizeof(char) * 2);
+	// buf[0] = 0x0;
+	// buf[1] = 0xF0;
+	// writeMemory(&cpu, buf, 0x06, 2);
+	
+	cpu.a = 0x40; // TEST WITH BIG VALUE TO SEE HOW CARRY BEHAVES
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
 	
-	cpu.ps = 0x1;
+	// cpu.ps = 0x1;
 	
 	while(cpu.pc < sizeof(program)) {
 		step(&cpu);
 	}
 
-	printMemory(&cpu);
+	// printMemory(&cpu);
 	printf("cpu->sp: %i\n", cpu.sp);
 	printf("cpu->a: %i\n", cpu.a);
 	printf("cpu->ps: %i\n", cpu.ps);
