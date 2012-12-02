@@ -163,6 +163,16 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x16: { // ASL zpg,X
+			int mem_location = cpu->program[cpu->pc++] + cpu->x;
+			mem_location &= 0xFF; // removes anything bigger than 0xFF (only 1 byte is allowed)
+			int mem_value = cpu->memory[mem_location];
+			mem_value <<= 0x1;
+			
+			updateStatusFlag(cpu, mem_value);
+			mem_value &= 0xFF; // 0xFF removes anything set in a bit > 8
+			cpu->memory[mem_location] = mem_value;
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0x18: { // CLC impl
@@ -194,14 +204,16 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x0E, 0x01, 0x20 };
+	const char program[] = { 0x16, 0x1 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char));
 	buf[0] = 0x25;
-	writeMemory(&cpu, buf, 0x2001, 1);
+	writeMemory(&cpu, buf, 0x16, 1);
 	free(buf);
+	
+	cpu.x = 0x15;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	
