@@ -157,7 +157,7 @@ void step(CPU *cpu) { // main code is here
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 5;
 			
-			int page_boundary = mem_initial_location + (mem_initial_location % PAGE_SIZE);
+			int page_boundary = mem_initial_location + (mem_final_location % PAGE_SIZE);
 			
 			if(mem_final_location > page_boundary) {
 				// page boundary crossed, +1 CPU cycle
@@ -206,7 +206,7 @@ void step(CPU *cpu) { // main code is here
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 4;
 			
-			int page_boundary = absolute_address + (absolute_address % PAGE_SIZE);
+			int page_boundary = absolute_address + (mem_final_address % PAGE_SIZE);
 			
 			if(mem_final_address > page_boundary) {
 				// page boundary crossed, +1 CPU cycle
@@ -287,21 +287,51 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x2E: { // ROL abs
+			
+		}
+		case 0x30: { // BMI rel
+			
+		}
+		case 0x31: { // AND ind,Y
+			int mem_initial_location = cpu->memory[cpu->program[cpu->pc++]];
+			int mem_final_location = mem_initial_location + cpu->y;
+			
+			cpu->a &= cpu->memory[mem_final_location];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 5;
+			
+			int page_boundary = mem_initial_location + (mem_final_location % PAGE_SIZE);
+			
+			if(mem_final_location > page_boundary) {
+				// page boundary crossed, +1 CPU cycle
+				cpu->cycles++;
+			}
+			
+			break;
+		}
 	}
 }
 
 
 
 int main() {
-	const char program[] = { 0x2D, 0x01, 0x15 };
+	const char program[] = { 0x31, 0x15 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char));
-	buf[0] = 0x38;
-	writeMemory(&cpu, buf, 0x1501, 1);
+	buf[0] = 0xfe;
+	writeMemory(&cpu, buf, 0x15, 1);
 	free(buf);
 	
+	char *buf2 = malloc(sizeof(char) * 2);
+	buf2[0] = 0x00;
+	buf2[1] = 0x26;
+	writeMemory(&cpu, buf2, 0x100, 2);
+	free(buf2);
+	
+	cpu.y = 0x03;
 	cpu.a = 0x27;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
