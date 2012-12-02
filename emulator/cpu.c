@@ -183,15 +183,15 @@ void step(CPU *cpu) { // main code is here
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
 			int absolute_address = join_bytes(low_byte, high_byte);
-			int mem_final_location = absolute_address + (currentOpcode == 0x19 ? cpu->y : cpu->x);
+			int mem_final_address = absolute_address + (currentOpcode == 0x19 ? cpu->y : cpu->x);
 			
-			cpu->a |= cpu->memory[mem_final_location];
+			cpu->a |= cpu->memory[mem_final_address];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 4;
 			
 			int page_boundary = absolute_address + (absolute_address % PAGE_SIZE);
 			
-			if(mem_final_location > page_boundary) {
+			if(mem_final_address > page_boundary) {
 				// page boundary crossed, +1 CPU cycle
 				cpu->cycles++;
 			}
@@ -202,14 +202,14 @@ void step(CPU *cpu) { // main code is here
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
 			int absolute_address = join_bytes(low_byte, high_byte);
-			int mem_final_location = absolute_address + cpu->x;
+			int mem_final_address = absolute_address + cpu->x;
 			
-			int mem_value = cpu->memory[mem_final_location];
+			int mem_value = cpu->memory[mem_final_address];
 			mem_value <<= 0x1;
 			
 			updateStatusFlag(cpu, mem_value);
 			mem_value &= 0xFF; // 0xFF removes anything set in a bit > 8
-			cpu->memory[mem_final_location] = mem_value;
+			cpu->memory[mem_final_address] = mem_value;
 			cpu->cycles += 6;
 			
 			break;
