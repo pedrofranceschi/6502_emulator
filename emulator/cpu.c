@@ -57,8 +57,13 @@ void updateStatusFlag(CPU *cpu, char operationResult) { // operationResult can b
 	cpu->ps = (carry_bit == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 }
 
-int join_bytes(int low_byte, int high_byte) {
+int joinBytes(int low_byte, int high_byte) {
 	return (high_byte << 0x8) | low_byte;
+}
+
+int calculatePageBoundary(int mem_initial_location, int mem_final_location) {
+	// return mem_initial_location + PAGE_SIZE - (mem_initial_location % PAGE_SIZE);
+	return mem_initial_location + PAGE_SIZE - 1 - (mem_initial_location % PAGE_SIZE);
 }
 
 void step(CPU *cpu) { // main code is here
@@ -124,7 +129,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x0D: { // ORA abs
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
-			int mem_location = join_bytes(low_byte, high_byte);
+			int mem_location = joinBytes(low_byte, high_byte);
 			
 			cpu->a |= cpu->memory[mem_location];
 			updateStatusFlag(cpu, cpu->a);
@@ -135,7 +140,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x0E: { // ASL abs
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
-			int absolute_address = join_bytes(low_byte, high_byte);
+			int absolute_address = joinBytes(low_byte, high_byte);
 			int address_byte = cpu->memory[absolute_address];
 			address_byte <<= 0x1; // left shift
 			
@@ -157,7 +162,7 @@ void step(CPU *cpu) { // main code is here
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 5;
 			
-			int page_boundary = mem_initial_location + (mem_final_location % PAGE_SIZE);
+			int page_boundary = calculatePageBoundary(mem_initial_location, mem_final_location);
 			
 			if(mem_final_location > page_boundary) {
 				// page boundary crossed, +1 CPU cycle
@@ -199,14 +204,14 @@ void step(CPU *cpu) { // main code is here
 		case 0x1D: { // ORA abs,X
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
-			int absolute_address = join_bytes(low_byte, high_byte);
+			int absolute_address = joinBytes(low_byte, high_byte);
 			int mem_final_address = absolute_address + (currentOpcode == 0x19 ? cpu->y : cpu->x);
 			
 			cpu->a |= cpu->memory[mem_final_address];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 4;
 			
-			int page_boundary = absolute_address + (mem_final_address % PAGE_SIZE);
+			int page_boundary = calculatePageBoundary(absolute_address, mem_final_address);
 			
 			if(mem_final_address > page_boundary) {
 				// page boundary crossed, +1 CPU cycle
@@ -218,7 +223,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x1E: { // ASL abs,X
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
-			int absolute_address = join_bytes(low_byte, high_byte);
+			int absolute_address = joinBytes(low_byte, high_byte);
 			int mem_final_address = absolute_address + cpu->x;
 			
 			int mem_value = cpu->memory[mem_final_address];
@@ -234,7 +239,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x20: { // JSR abs
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
-			int absolute_address = join_bytes(low_byte, high_byte);
+			int absolute_address = joinBytes(low_byte, high_byte);
 			
 			pushByteToStack(cpu, cpu->pc - 1); // push (program counter - 1) to stack
 			cpu->pc = absolute_address;
@@ -279,7 +284,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x2D: { // AND abs
 			char low_byte = cpu->program[cpu->pc++];
 			char high_byte = cpu->program[cpu->pc++];
-			int mem_location = join_bytes(low_byte, high_byte);
+			int mem_location = joinBytes(low_byte, high_byte);
 			
 			cpu->a &= cpu->memory[mem_location];
 			updateStatusFlag(cpu, cpu->a);
@@ -301,7 +306,11 @@ void step(CPU *cpu) { // main code is here
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 5;
 			
-			int page_boundary = mem_initial_location + (mem_final_location % PAGE_SIZE);
+			printf("mem_initial_location: %i\n", mem_initial_location);
+			printf("mem_final_location: %i\n", mem_final_location);
+			
+			int page_boundary = calculatePageBoundary(mem_initial_location, mem_final_location);
+			printf("page_boundary: %i\n", page_boundary);
 			
 			if(mem_final_location > page_boundary) {
 				// page boundary crossed, +1 CPU cycle
@@ -331,7 +340,7 @@ int main() {
 	writeMemory(&cpu, buf2, 0x100, 2);
 	free(buf2);
 	
-	cpu.y = 0x03;
+	cpu.y = 0x02;
 	cpu.a = 0x27;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
