@@ -49,7 +49,7 @@ char pullByteFromStack(CPU *cpu) {
 	return cpu->memory[0x100 + cpu->sp];
 }
 
-void updateStatusFlag(CPU *cpu, char operationResult) { // operationResult can be accumulator, X, Y or any result
+void updateStatusFlag(CPU *cpu, int operationResult) { // operationResult can be accumulator, X, Y or any result
 	cpu->ps = (operationResult == 0 ? cpu->ps | 0x2 : cpu->ps & 0xFD ); // sets zero flag (bit 1)
 	cpu->ps = (operationResult & 0x80 != 0 ? cpu->ps | 0x80 : cpu-> ps & 0x7F ); // sets negative flag (bit 7 of operationResult is set)
 	
@@ -282,6 +282,18 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x26: { // ROL zpg
+			char zeropage_location = cpu->program[cpu->pc++];
+			int operation_byte = cpu->memory[zeropage_location];
+			operation_byte <<= 1;
+			
+			if(cpu->ps & 0x1 != 0) { // carry bit is on
+				operation_byte |= 0x1; // turn on bit 0 on operation byte (carry bit shifted on bit 0)
+			}
+			
+			updateStatusFlag(cpu, operation_byte);
+			cpu->memory[zeropage_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
+			cpu->cycles += 5;
+			
 			break;
 		}
 		case 0x28: { // PLP impl
@@ -352,20 +364,19 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x3D, 0xFE, 0x05 };
+	const char program[] = { 0x26, 0x07 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x0;
-	buf[1] = 0x23;
-	writeMemory(&cpu, buf, 0x0600, 2);
-	
-	cpu.x = 0x3;
-	cpu.a = 0x27;
+	buf[1] = 0xF0;
+	writeMemory(&cpu, buf, 0x06, 2);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
+	
+	cpu.ps = 0x1;
 	
 	while(cpu.pc < sizeof(program)) {
 		step(&cpu);
