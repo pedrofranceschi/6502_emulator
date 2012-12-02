@@ -330,17 +330,17 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x16, 0x15 };
+	const char program[] = { 0x35, 0x15 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0xDA;
+	buf[0] = 0x29;
 	buf[1] = 0x01;
 	writeMemory(&cpu, buf, 0x25, 2);
 	
 	cpu.x = 0x10;
-	// cpu.a = 0x27;
+	cpu.a = 0x27;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
