@@ -270,20 +270,37 @@ void step(CPU *cpu) { // main code is here
 			cpu->cycles += 2;
 			break;
 		}
+		case 0x2A: { // ROL accumulator
+			break;
+		}
+		case 0x2C: { // BIT abs
+			break;
+		}
+		case 0x2D: { // AND abs
+			char low_byte = cpu->program[cpu->pc++];
+			char high_byte = cpu->program[cpu->pc++];
+			int mem_location = join_bytes(low_byte, high_byte);
+			
+			cpu->a &= cpu->memory[mem_location];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 4;
+			
+			break;
+		}
 	}
 }
 
 
 
 int main() {
-	const char program[] = { 0x29, 0x15 };
+	const char program[] = { 0x2D, 0x01, 0x15 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	// char *buf = malloc(sizeof(char));
-	// buf[0] = 0x29;
-	// writeMemory(&cpu, buf, 0x15, 1);
-	// free(buf);
+	char *buf = malloc(sizeof(char));
+	buf[0] = 0x38;
+	writeMemory(&cpu, buf, 0x1501, 1);
+	free(buf);
 	
 	cpu.a = 0x27;
 	
