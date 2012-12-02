@@ -86,6 +86,14 @@ int addressForIndirectIndexedAddressing(CPU *cpu, char byte, int *cycles) {
 	return full_address + cpu->y;
 }
 
+int addressForZeroPageXAddressing(CPU *cpu, char byte) {	
+	return (byte + cpu->x) & 0xFF; // removes anything bigger than 0xFF (only 1 byte is allowed)
+}
+
+int addressForZeroPageYAddressing(CPU *cpu, char byte) {	
+	return (byte + cpu->y) & 0xFF; // removes anything bigger than 0xFF (only 1 byte is allowed)
+}
+
 void step(CPU *cpu) { // main code is here
 	char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	printf("currentOpcode: %i\n", currentOpcode);
@@ -180,19 +188,15 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
-		case 0x15: { // ORA zpg,X
-			int mem_location = cpu->program[cpu->pc++] + cpu->x;
-			mem_location &= 0xFF; // removes anything bigger than 0xFF (only 1 byte is allowed)
-			
-			cpu->a |= cpu->memory[mem_location];
+		case 0x15: { // ORA zpg,X			
+			cpu->a |= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0x16: { // ASL zpg,X
-			int mem_location = cpu->program[cpu->pc++] + cpu->x;
-			mem_location &= 0xFF; // removes anything bigger than 0xFF (only 1 byte is allowed)
+			int mem_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
 			int mem_value = cpu->memory[mem_location];
 			mem_value <<= 0x1;
 			
@@ -314,28 +318,29 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x35: { // AND zpg,X			
+			cpu->a &= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 4;
+			
+			break;
+		}
 	}
 }
 
 
 int main() {
-	const char program[] = { 0x31, 0x15 };
+	const char program[] = { 0x16, 0x15 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0xfe;
+	buf[0] = 0xDA;
 	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x15, 2);
+	writeMemory(&cpu, buf, 0x25, 2);
 	
-	char *buf2 = malloc(sizeof(char) * 2);
-	buf2[0] = 0x00;
-	buf2[1] = 0x26;
-	writeMemory(&cpu, buf2, 0x200, 2);
-	free(buf2);
-	
-	cpu.y = 0x03;
-	cpu.a = 0x27;
+	cpu.x = 0x10;
+	// cpu.a = 0x27;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
@@ -344,7 +349,7 @@ int main() {
 		step(&cpu);
 	}
 
-	// printMemory(&cpu);
+	printMemory(&cpu);
 	printf("cpu->sp: %i\n", cpu.sp);
 	printf("cpu->a: %i\n", cpu.a);
 	printf("cpu->ps: %i\n", cpu.ps);
