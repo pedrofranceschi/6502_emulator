@@ -258,22 +258,34 @@ void step(CPU *cpu) { // main code is here
 			cpu->cycles += 3;
 			break;
 		}
+		case 0x26: { // ROL zpg
+			break;
+		}
+		case 0x28: { // PLP impl
+			break;
+		}
+		case 0x29: { // AND immediate
+			cpu->a &= cpu->program[cpu->pc++]; // just OR with next byte after opcode
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 2;
+			break;
+		}
 	}
 }
 
 
 
 int main() {
-	const char program[] = { 0x25, 0x15 };
+	const char program[] = { 0x29, 0x15 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char));
-	buf[0] = 0x29;
-	writeMemory(&cpu, buf, 0x15, 1);
-	free(buf);
+	// char *buf = malloc(sizeof(char));
+	// buf[0] = 0x29;
+	// writeMemory(&cpu, buf, 0x15, 1);
+	// free(buf);
 	
-	cpu.a = 0x27;	
+	cpu.a = 0x27;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
