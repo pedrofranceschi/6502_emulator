@@ -67,6 +67,18 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x06: { // ASL zpg
+			int zeropage_location = cpu->program[cpu->pc++];
+			int zeropage_byte = cpu->memory[zeropage_location];
+			zeropage_byte <<= 0x1; // left shift
+			
+			int carry_bit = zeropage_byte & 0x100; // moves bit 8 to carry bit
+			cpu->ps = (carry_bit == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
+			
+			zeropage_byte &= 0xFF; // 0xFF removes anything set in a bit > 8
+			cpu->memory[zeropage_location] = zeropage_byte;
+			updateStatusFlag(cpu, zeropage_byte);
+			cpu->cycles += 5;
+			
 			break;
 		}
 		case 0x08: { // PHP impl
@@ -157,21 +169,20 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x1D, 0x01, 0x20 };
+	const char program[] = { 0x6, 0x4 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char));
-	buf[0] = 0x29;
-	writeMemory(&cpu, buf, 0x2003, 1);
+	buf[0] = 0x50;
+	writeMemory(&cpu, buf, 0x4, 1);
 	free(buf);
 	
-	cpu.x = 0x2;
-	cpu.a = 0x5;
+	printf("cpu->ps: %i\n", cpu.ps);
 	
 	step(&cpu);
 
-	// printMemory(&cpu);
+	printMemory(&cpu);
 	printf("cpu->a: %i\n", cpu.a);
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->cycles: %i\n", cpu.cycles);
