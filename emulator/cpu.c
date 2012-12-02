@@ -242,21 +242,29 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x21: { // AND ind,X
+			cpu->a &= cpu->memory[cpu->memory[cpu->program[cpu->pc++] + cpu->x]];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 6; // this operation takes 6 cycles;
+		}
 	}
 }
 
 
 
 int main() {
-	const char program[] = { 0x1E, 0x11, 0x10, 0x20, 0x0, 0x0 };
+	const char program[] = { 0x21, 0x15 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char));
-	buf[0] = 0xff;
-	writeMemory(&cpu, buf, 0x1013, 1);
+	char *buf = malloc(sizeof(char) * 3);
+	buf[0] = 0x19;
+	buf[1] = 0x0;
+	buf[2] = 0x15;
+	writeMemory(&cpu, buf, 0x17, 3);
 	free(buf);
 	
+	cpu.a = 0x6;
 	cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
