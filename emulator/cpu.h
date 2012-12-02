@@ -1,7 +1,7 @@
 #include <stdio.h>
 // #include "memory.h"
 
-#define PAGE_SIZE 0xFF
+#define PAGE_SIZE 256
 #define MEMORY_PAGES 255
 #define MEMORY_SIZE MEMORY_PAGES * PAGE_SIZE
 

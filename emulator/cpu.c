@@ -5,7 +5,8 @@ void initializeCPU(CPU *cpu, char *program, int programLength) {
 	cpu->memory = malloc(sizeof(unsigned char) * MEMORY_SIZE);
 	cpu->program = program;
 	cpu->programLength = programLength;
-	cpu->cycles = cpu->pc = cpu->sp = cpu->a = cpu->x = cpu->y = cpu->ps = 0; // TODO: move to reset function
+	cpu->cycles = cpu->pc = cpu->a = cpu->x = cpu->y = cpu->ps = 0; // TODO: move to reset function
+	cpu->sp = 0xFF; // stack pointer starts at 0xFF
 }
 
 void writeMemory(CPU *cpu, char *buffer, int start, int offset) {
@@ -38,7 +39,17 @@ void freeCPU(CPU *cpu) {
 	free(cpu->memory);
 }
 
-void updateStatusFlag(CPU *cpu, char operationResult) { // operationResult can be accumulator, X, Y or any registers
+void pushByteToStack(CPU *cpu, char byte) {
+	cpu->memory[0x100 + cpu->sp] = byte;
+	cpu->sp--;
+}
+
+char pullByteFromStack(CPU *cpu) {
+	cpu->sp++;
+	return cpu->memory[0x100 + cpu->sp];
+}
+
+void updateStatusFlag(CPU *cpu, char operationResult) { // operationResult can be accumulator, X, Y or any result
 	cpu->ps = (operationResult == 0 ? cpu->ps | 0x2 : cpu->ps & 0xFD ); // sets zero flag (bit 1)
 	cpu->ps = (operationResult & 0x80 != 0 ? cpu->ps | 0x80 : cpu-> ps & 0x7F ); // sets negative flag (bit 7 of operationResult is set)
 	
@@ -85,6 +96,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x08: { // PHP impl
+			pushByteToStack(cpu, cpu->ps);
+			cpu->cycles += 3;
 			break;
 		}
 		case 0x09: { // ORA immediate
@@ -220,22 +233,25 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x1E, 0x11, 0x10 };
+	const char program[] = { 0x1E, 0x11, 0x10, 0x08 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char));
-	buf[0] = 0x25;
+	buf[0] = 0xff;
 	writeMemory(&cpu, buf, 0x1013, 1);
 	free(buf);
 	
 	cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
+	printf("cpu->sp: %i\n", cpu.sp);
 	
+	step(&cpu);
 	step(&cpu);
 
 	printMemory(&cpu);
+	printf("cpu->sp: %i\n", cpu.sp);
 	printf("cpu->a: %i\n", cpu.a);
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->cycles: %i\n", cpu.cycles);
