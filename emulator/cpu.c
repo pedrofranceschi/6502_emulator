@@ -246,6 +246,17 @@ void step(CPU *cpu) { // main code is here
 			cpu->a &= cpu->memory[cpu->memory[cpu->program[cpu->pc++] + cpu->x]];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 6; // this operation takes 6 cycles;
+			
+			break;
+		}
+		case 0x24: { // BIT zpg
+			break;
+		}
+		case 0x25: { // AND zpg
+			cpu->a &= cpu->memory[cpu->program[cpu->pc++]]; // AND with memory content at (next byte after opcode in zero page)
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 3;
+			break;
 		}
 	}
 }
@@ -253,19 +264,16 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x21, 0x15 };
+	const char program[] = { 0x25, 0x15 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 3);
-	buf[0] = 0x19;
-	buf[1] = 0x0;
-	buf[2] = 0x15;
-	writeMemory(&cpu, buf, 0x17, 3);
+	char *buf = malloc(sizeof(char));
+	buf[0] = 0x29;
+	writeMemory(&cpu, buf, 0x15, 1);
 	free(buf);
 	
-	cpu.a = 0x6;
-	cpu.x = 0x2;
+	cpu.a = 0x27;	
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
