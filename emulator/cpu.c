@@ -378,19 +378,32 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x3E: { // ROL abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int absolute_address = joinBytes(low_byte, high_byte);
+			int mem_final_address = absolute_address + cpu->x;
+			int operation_byte = rotateByte(cpu, cpu->memory[mem_final_address], 1);
+			
+			updateStatusFlag(cpu, operation_byte);
+			cpu->memory[mem_final_address] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
+			cpu->cycles += 7;
+
+			break;
+		}
 	}
 }
 
 
 int main() {
-	const char program[] = { 0x36, 0x20 };
+	const char program[] = { 0x3E, 0x05, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x0;
-	buf[1] = 0xDF;
-	writeMemory(&cpu, buf, 0x21, 2);
+	buf[1] = 0x25;
+	writeMemory(&cpu, buf, 0x0106, 2);
 	
 	cpu.x = 0x2;
 	
