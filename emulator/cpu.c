@@ -391,21 +391,33 @@ void step(CPU *cpu) { // main code is here
 
 			break;
 		}
+		case 0x41: { // EOR ind,X
+			cpu->a ^= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 6; // this operation takes 6 cycles;
+			break;
+		}
 	}
 }
 
-
 int main() {
-	const char program[] = { 0x3E, 0x05, 0x01 };
+	const char program[] = { 0x41, 0x05 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 2);
+	char *buf = malloc(sizeof(char) * 3);
 	buf[0] = 0x0;
-	buf[1] = 0x25;
-	writeMemory(&cpu, buf, 0x0106, 2);
+	buf[1] = 0x49;
+	buf[2] = 0x02;
+	writeMemory(&cpu, buf, 0x6, 3);
 	
+	cpu.a = 0x6;
 	cpu.x = 0x2;
+	
+	char *buf2 = malloc(sizeof(char));
+	buf2[0] = 0x27;
+	writeMemory(&cpu, buf2, 0x0249, 1);
+	free(buf2);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
