@@ -63,6 +63,7 @@ int join_bytes(int low_byte, int high_byte) {
 
 void step(CPU *cpu) { // main code is here
 	char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
+	printf("currentOpcode: %i\n", currentOpcode);
 	switch(currentOpcode) {
 		case 0x00: { // BRK impl
 			break;
@@ -230,13 +231,24 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x20: { // JSR abs
+			char low_byte = cpu->program[cpu->pc++];
+			char high_byte = cpu->program[cpu->pc++];
+			int absolute_address = join_bytes(low_byte, high_byte);
+			
+			pushByteToStack(cpu, cpu->pc - 1); // push (program counter - 1) to stack
+			cpu->pc = absolute_address;
+			cpu->cycles += 6;
+			
+			break;
+		}
 	}
 }
 
 
 
 int main() {
-	const char program[] = { 0x1E, 0x11, 0x10, 0x18 };
+	const char program[] = { 0x1E, 0x11, 0x10, 0x20, 0x0, 0x0 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
@@ -250,10 +262,11 @@ int main() {
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
 	
-	step(&cpu);
-	step(&cpu);
+	while(cpu.pc < sizeof(program)) {
+		step(&cpu);
+	}
 
-	printMemory(&cpu);
+	// printMemory(&cpu);
 	printf("cpu->sp: %i\n", cpu.sp);
 	printf("cpu->a: %i\n", cpu.a);
 	printf("cpu->ps: %i\n", cpu.ps);
