@@ -337,10 +337,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char low_byte = cpu->program[cpu->pc++];
 			unsigned char high_byte = cpu->program[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
-			printf("byte: %i\n", cpu->memory[mem_location]);
 			int operation_byte = rotateByte(cpu, cpu->memory[mem_location], 1);
-			
-			printf("operation_byte: %i\n", operation_byte);
 			
 			updateStatusFlag(cpu, operation_byte);
 			cpu->memory[mem_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
