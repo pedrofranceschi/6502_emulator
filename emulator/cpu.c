@@ -94,6 +94,20 @@ int addressForZeroPageYAddressing(CPU *cpu, char byte) {
 	return (byte + cpu->y) & 0xFF; // removes anything bigger than 0xFF (only 1 byte is allowed)
 }
 
+int addressForAbsoluteAddedAddressing(CPU *cpu, unsigned char low_byte, unsigned char high_byte, char adding, int *cycles) {
+	int absolute_address = joinBytes(low_byte, high_byte);
+	int mem_final_address = absolute_address + adding;
+	
+	int page_boundary = calculatePageBoundary(absolute_address, mem_final_address);
+	
+	if(mem_final_address > page_boundary) {
+		// page boundary crossed, +1 CPU cycle
+		(*cycles)++;
+	}
+	
+	return mem_final_address;
+}
+
 void step(CPU *cpu) { // main code is here
 	char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	printf("currentOpcode: %i\n", currentOpcode);
@@ -215,21 +229,12 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x19:   // ORA abs,Y
 		case 0x1D: { // ORA abs,X
-			char low_byte = cpu->program[cpu->pc++];
-			char high_byte = cpu->program[cpu->pc++];
-			int absolute_address = joinBytes(low_byte, high_byte);
-			int mem_final_address = absolute_address + (currentOpcode == 0x19 ? cpu->y : cpu->x);
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
 			
-			cpu->a |= cpu->memory[mem_final_address];
+			cpu->a |= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x39 ? cpu->y : cpu->x), &cpu->cycles)];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 4;
-			
-			int page_boundary = calculatePageBoundary(absolute_address, mem_final_address);
-			
-			if(mem_final_address > page_boundary) {
-				// page boundary crossed, +1 CPU cycle
-				cpu->cycles++;
-			}
 			
 			break;
 		}
@@ -325,21 +330,38 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x36: { // ROL zpg,X
+			break;
+		}
+		case 0x38: { // SEC impl
+			break;
+		}
+		case 0x39:   // AND abs,Y
+		case 0x3D: { // AND abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			
+			cpu->a &= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x39 ? cpu->y : cpu->x), &cpu->cycles)];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 4;
+			
+			break;
+		}
 	}
 }
 
 
 int main() {
-	const char program[] = { 0x35, 0x15 };
+	const char program[] = { 0x3D, 0xFE, 0x05 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0x29;
-	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x25, 2);
+	buf[0] = 0x0;
+	buf[1] = 0x23;
+	writeMemory(&cpu, buf, 0x0600, 2);
 	
-	cpu.x = 0x10;
+	cpu.x = 0x3;
 	cpu.a = 0x27;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
