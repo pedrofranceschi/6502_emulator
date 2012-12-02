@@ -198,22 +198,38 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x1E: { // ASL abs,X
+			char low_byte = cpu->program[cpu->pc++];
+			char high_byte = cpu->program[cpu->pc++];
+			int absolute_address = join_bytes(low_byte, high_byte);
+			int mem_final_location = absolute_address + cpu->x;
+			
+			int mem_value = cpu->memory[mem_final_location];
+			mem_value <<= 0x1;
+			
+			updateStatusFlag(cpu, mem_value);
+			mem_value &= 0xFF; // 0xFF removes anything set in a bit > 8
+			cpu->memory[mem_final_location] = mem_value;
+			cpu->cycles += 6;
+			
+			break;
+		}
 	}
 }
 
 
 
 int main() {
-	const char program[] = { 0x16, 0x1 };
+	const char program[] = { 0x1E, 0x11, 0x10 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char));
 	buf[0] = 0x25;
-	writeMemory(&cpu, buf, 0x16, 1);
+	writeMemory(&cpu, buf, 0x1013, 1);
 	free(buf);
 	
-	cpu.x = 0x15;
+	cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	
