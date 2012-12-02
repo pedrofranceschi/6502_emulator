@@ -66,14 +66,24 @@ int calculatePageBoundary(int mem_initial_location, int mem_final_location) {
 	return mem_initial_location + PAGE_SIZE - 1 - (mem_initial_location % PAGE_SIZE);
 }
 
-int operationBytesForIndexedIndirectAddressing(CPU *cpu, char byte) {
+int addressForIndexedIndirectAddressing(CPU *cpu, char byte) {
 	char address_low_byte = byte + cpu->x;
 	char address_high_byte = address_low_byte + 1;
-	printf("address_low_byte: %i\n", address_low_byte);
-	printf("address_high_byte: %i\n", address_high_byte);
 	int full_address = joinBytes(cpu->memory[address_low_byte], cpu->memory[address_high_byte]);
-	printf("returning full_address: %i\n", full_address);
-	return full_address; // joinBytes(cpu->memory[address_low_byte], cpu->memory[address_high_byte]);
+	return full_address;
+}
+
+int addressForIndirectIndexedAddressing(CPU *cpu, char byte, int *cycles) {
+	char operation_low_byte = byte;
+	char operation_high_byte = operation_low_byte + 1;
+	int full_address = joinBytes(cpu->memory[operation_low_byte], cpu->memory[operation_high_byte]);
+	
+	if(full_address + cpu->y > calculatePageBoundary(full_address, full_address + cpu->y)) {
+		// page boundary crossed, +1 CPU cycle
+		(*cycles)++;
+	}
+	
+	return full_address + cpu->y;
 }
 
 void step(CPU *cpu) { // main code is here
@@ -84,7 +94,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x01: { // ORA ind,X
-			cpu->a |= cpu->memory[operationBytesForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a |= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			break;
@@ -164,19 +174,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x11: { // ORA ind,Y
-			int mem_initial_location = cpu->memory[cpu->program[cpu->pc++]];
-			int mem_final_location = mem_initial_location + cpu->y;
-			
-			cpu->a |= cpu->memory[mem_final_location];
+			cpu->a |= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 5;
-			
-			int page_boundary = calculatePageBoundary(mem_initial_location, mem_final_location);
-			
-			if(mem_final_location > page_boundary) {
-				// page boundary crossed, +1 CPU cycle
-				cpu->cycles++;
-			}
 			
 			break;
 		}
@@ -257,7 +257,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x21: { // AND ind,X
-			cpu->a &= cpu->memory[operationBytesForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a &= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			
@@ -308,27 +308,9 @@ void step(CPU *cpu) { // main code is here
 			
 		}
 		case 0x31: { // AND ind,Y
-			int mem_initial_location = cpu->memory[cpu->program[cpu->pc++]];
-			int mem_final_location = mem_initial_location + cpu->y;
-			
-			// NEEDS TO GET FULL ADDRESS (FIX FIX FIX)
-			// move indexed indirect to method returning operation byte
-			// move indirected index to method returning operation byte
-			
-			cpu->a &= cpu->memory[mem_final_location];
+			cpu->a &= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 5;
-			
-			printf("mem_initial_location: %i\n", mem_initial_location);
-			printf("mem_final_location: %i\n", mem_final_location);
-			
-			int page_boundary = calculatePageBoundary(mem_initial_location, mem_final_location);
-			printf("page_boundary: %i\n", page_boundary);
-			
-			if(mem_final_location > page_boundary) {
-				// page boundary crossed, +1 CPU cycle
-				cpu->cycles++;
-			}
 			
 			break;
 		}
@@ -337,19 +319,23 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x21, 0x15 };
+	const char program[] = { 0x31, 0x15 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 3);
-	buf[0] = 0x19;
-	buf[1] = 0x0;
-	buf[2] = 0x15;
-	writeMemory(&cpu, buf, 0x17, 3);
-	free(buf);
+	char *buf = malloc(sizeof(char) * 2);
+	buf[0] = 0xfe;
+	buf[1] = 0x01;
+	writeMemory(&cpu, buf, 0x15, 2);
 	
-	cpu.a = 0x6;
-	cpu.x = 0x2;
+	char *buf2 = malloc(sizeof(char) * 2);
+	buf2[0] = 0x00;
+	buf2[1] = 0x26;
+	writeMemory(&cpu, buf2, 0x200, 2);
+	free(buf2);
+	
+	cpu.y = 0x03;
+	cpu.a = 0x27;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
