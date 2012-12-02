@@ -391,6 +391,9 @@ void step(CPU *cpu) { // main code is here
 
 			break;
 		}
+		case 0x40: { // RTI impl
+			break;
+		}
 		case 0x41: { // EOR ind,X
 			cpu->a ^= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
 			updateStatusFlag(cpu, cpu->a);
