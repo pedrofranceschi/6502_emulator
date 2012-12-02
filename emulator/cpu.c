@@ -66,6 +66,16 @@ int calculatePageBoundary(int mem_initial_location, int mem_final_location) {
 	return mem_initial_location + PAGE_SIZE - 1 - (mem_initial_location % PAGE_SIZE);
 }
 
+int operationBytesForIndexedIndirectAddressing(CPU *cpu, char byte) {
+	char address_low_byte = byte + cpu->x;
+	char address_high_byte = address_low_byte + 1;
+	printf("address_low_byte: %i\n", address_low_byte);
+	printf("address_high_byte: %i\n", address_high_byte);
+	int full_address = joinBytes(cpu->memory[address_low_byte], cpu->memory[address_high_byte]);
+	printf("returning full_address: %i\n", full_address);
+	return full_address; // joinBytes(cpu->memory[address_low_byte], cpu->memory[address_high_byte]);
+}
+
 void step(CPU *cpu) { // main code is here
 	char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	printf("currentOpcode: %i\n", currentOpcode);
@@ -74,8 +84,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x01: { // ORA ind,X
-			// cpu->a |= cpu->memory[cpu->program[cpu->pc++]] + cpu->x; // OR with accumulator and memory at (next byte after opcode) + X
-			cpu->a |= cpu->memory[cpu->memory[cpu->program[cpu->pc++] + cpu->x]];
+			cpu->a |= cpu->memory[operationBytesForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			break;
@@ -248,7 +257,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x21: { // AND ind,X
-			cpu->a &= cpu->memory[cpu->memory[cpu->program[cpu->pc++] + cpu->x]];
+			cpu->a &= cpu->memory[operationBytesForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			
@@ -302,6 +311,10 @@ void step(CPU *cpu) { // main code is here
 			int mem_initial_location = cpu->memory[cpu->program[cpu->pc++]];
 			int mem_final_location = mem_initial_location + cpu->y;
 			
+			// NEEDS TO GET FULL ADDRESS (FIX FIX FIX)
+			// move indexed indirect to method returning operation byte
+			// move indirected index to method returning operation byte
+			
 			cpu->a &= cpu->memory[mem_final_location];
 			updateStatusFlag(cpu, cpu->a);
 			cpu->cycles += 5;
@@ -323,25 +336,20 @@ void step(CPU *cpu) { // main code is here
 }
 
 
-
 int main() {
-	const char program[] = { 0x31, 0x15 };
+	const char program[] = { 0x21, 0x15 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char));
-	buf[0] = 0xfe;
-	writeMemory(&cpu, buf, 0x15, 1);
+	char *buf = malloc(sizeof(char) * 3);
+	buf[0] = 0x19;
+	buf[1] = 0x0;
+	buf[2] = 0x15;
+	writeMemory(&cpu, buf, 0x17, 3);
 	free(buf);
 	
-	char *buf2 = malloc(sizeof(char) * 2);
-	buf2[0] = 0x00;
-	buf2[1] = 0x26;
-	writeMemory(&cpu, buf2, 0x100, 2);
-	free(buf2);
-	
-	cpu.y = 0x02;
-	cpu.a = 0x27;
+	cpu.a = 0x6;
+	cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
