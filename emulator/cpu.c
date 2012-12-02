@@ -363,6 +363,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x36: { // ROL zpg,X
+			int zeropage_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 1);
+			
+			updateStatusFlag(cpu, operation_byte);
+			cpu->memory[zeropage_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0x38: { // SEC impl
@@ -384,14 +391,16 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x2E, 0x01, 0x02 };
+	const char program[] = { 0x36, 0x20 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x0;
 	buf[1] = 0xDF;
-	writeMemory(&cpu, buf, 0x0200, 2);
+	writeMemory(&cpu, buf, 0x21, 2);
+	
+	cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
