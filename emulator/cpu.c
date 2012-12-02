@@ -189,6 +189,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x18: { // CLC impl
+			cpu->ps = cpu->ps & 0xFE; // clean carry bit (0)
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x19:   // ORA abs,Y
@@ -233,7 +236,7 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x1E, 0x11, 0x10, 0x08 };
+	const char program[] = { 0x1E, 0x11, 0x10, 0x18 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
