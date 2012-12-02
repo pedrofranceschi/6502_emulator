@@ -90,7 +90,18 @@ void step(CPU *cpu) { // main code is here
 			cpu->cycles += 2;
 			break;
 		}
-		case 0x0A: { // ASL abs
+		case 0x0A: { // ASL accumulator
+			int accumulator_byte = cpu->a;
+			accumulator_byte <<= 0x1; // left shift
+			
+			int carry_bit = accumulator_byte & 0x100; // moves bit 8 to carry bit
+			cpu->ps = (carry_bit == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
+			
+			accumulator_byte &= 0xFF;
+			cpu->a = accumulator_byte;
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x0D: { // ORA abs
@@ -169,20 +180,22 @@ void step(CPU *cpu) { // main code is here
 
 
 int main() {
-	const char program[] = { 0x6, 0x4 };
+	const char program[] = { 0x0A };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char));
-	buf[0] = 0x50;
-	writeMemory(&cpu, buf, 0x4, 1);
-	free(buf);
+	// char *buf = malloc(sizeof(char));
+	// buf[0] = 0x50;
+	// writeMemory(&cpu, buf, 0x4, 1);
+	// free(buf);
+	
+	cpu.a = 0x50;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	
 	step(&cpu);
 
-	printMemory(&cpu);
+	// printMemory(&cpu);
 	printf("cpu->a: %i\n", cpu.a);
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->cycles: %i\n", cpu.cycles);
