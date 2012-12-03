@@ -584,6 +584,14 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x6D: { // ADC abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);			
+			int operation_byte = cpu->memory[mem_location];
+			
+			addWithCarry(cpu, operation_byte);
+			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->cycles += 4;
 			break;
 		}
 		case 0x6E: { // ROR abs
@@ -615,17 +623,17 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x69, 0x07 };
+	const char program[] = { 0x6D, 0x07, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x35;
 	buf[1] = 0x0;
-	writeMemory(&cpu, buf, 0x07, 2);
+	writeMemory(&cpu, buf, 0x0107, 2);
 	
 	// cpu.ps = 0x1;
-	cpu.a = 0xf0;
+	cpu.a = 0x10;
 	// cpu.x = 0x2;
 	
 	char *buf2 = malloc(sizeof(char) * 1);
