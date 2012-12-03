@@ -586,7 +586,7 @@ void step(CPU *cpu) { // main code is here
 			
 			printf("operation_byte: %i\n", operation_byte);
 			
-			updateStatusRegister(cpu, operation_byte, 0x1);
+			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->memory[zeropage_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
 			cpu->cycles += 5;
 			
@@ -604,6 +604,12 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x6A: { // ROR accumulator
+			int operation_byte = rotateByte(cpu, cpu->a, 0);
+			
+			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->a = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x6C: { // JMP ind
@@ -668,7 +674,7 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x66, 0x04 };
+	const char program[] = { 0x6A };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
@@ -678,7 +684,8 @@ int main() {
 	writeMemory(&cpu, buf, 0x04, 2);
 	
 	// cpu.ps = 0x1;
-	// cpu.a = 0x10;
+	cpu.a = 0x11;
+	
 	// cpu.y = 0x1;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
