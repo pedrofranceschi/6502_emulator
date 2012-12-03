@@ -491,6 +491,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x56: { // LSR zpg,X
+			int mem_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			int operation_byte = logicalShiftRight(cpu, cpu->memory[mem_location]);
+			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			
+			cpu->memory[mem_location] = operation_byte;
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0x58: { // CLI impl
@@ -507,21 +514,35 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x5E: { // LSR abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			
+			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, NULL);
+			printf("mem_location: %i\n", mem_location);
+			int operation_byte = logicalShiftRight(cpu, cpu->memory[mem_location]);
+			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			
+			cpu->memory[mem_location] = operation_byte;
+			cpu->cycles += 7;
+			
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x4E, 0x02, 0x01 };
+	const char program[] = { 0x5E, 0x02, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 1);
 	buf[0] = 0x35;
 	// buf[1] = 0x25;
-	writeMemory(&cpu, buf, 0x0102, 1);
+	writeMemory(&cpu, buf, 0x0104, 1);
 	
 	// cpu.a = 0x3;
-	// cpu.x = 0x2;
+	cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
