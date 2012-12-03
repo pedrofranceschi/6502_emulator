@@ -722,6 +722,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x8A: { // TXA impl
+			cpu->a = cpu->x;
+			updateStatusRegister(cpu, cpu->a, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x8C: { // STY abs
@@ -779,6 +783,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x98: { // TYA impl
+			cpu->a = cpu->y;
+			updateStatusRegister(cpu, cpu->a, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x99:   // STA abs,Y
@@ -792,13 +800,17 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x9A: { // TXS impl
+			cpu->sp = cpu->x;
+			updateStatusRegister(cpu, cpu->sp, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x96, 0x02 };
+	const char program[] = { 0x8A };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
