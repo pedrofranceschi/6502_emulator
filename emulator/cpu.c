@@ -684,20 +684,30 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x7E: { // ROR abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int absolute_address = joinBytes(low_byte, high_byte);
+			int mem_final_address = absolute_address + cpu->x;
+			int operation_byte = rotateByte(cpu, cpu->memory[mem_final_address], 0);
+			
+			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->memory[mem_final_address] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
+			cpu->cycles += 7;
+
 			break;
 		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x76, 0x03 };
+	const char program[] = { 0x7E, 0x03, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x14;
 	buf[1] = 0x07;
-	writeMemory(&cpu, buf, 0x05, 2);
+	writeMemory(&cpu, buf, 0x0105, 2);
 	
 	// cpu.ps = 0x1;
 	cpu.a = 0x11;
