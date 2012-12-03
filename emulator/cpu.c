@@ -938,9 +938,21 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xBC: { // LDY abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			cpu->y = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, &(cpu->cycles))];
+			updateStatusRegister(cpu, cpu->y, 0);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xBD: { // LDA abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			cpu->a = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, &(cpu->cycles))];
+			updateStatusRegister(cpu, cpu->a, 0);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xBE: { // LDX abs,Y
@@ -956,7 +968,7 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xBE, 0x03, 0x01 };
+	const char program[] = { 0xBD, 0x03, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
@@ -967,8 +979,8 @@ int main() {
 	
 	// cpu.ps = 0x1;
 	cpu.a = 0x09;
-	cpu.x = 0x3;
-	cpu.y = 0x2;
+	cpu.x = 0x2;
+	cpu.y = 0x3;
 	
 	// char *buf2 = malloc(sizeof(char) * 2);
 	// buf2[0] = 0xFF;
