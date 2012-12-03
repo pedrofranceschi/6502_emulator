@@ -806,11 +806,92 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0xA0: { // LDY immediate
+			cpu->y = cpu->program[cpu->pc++];
+			updateStatusRegister(cpu, cpu->y, 0);
+			cpu->cycles += 2;
+			
+			break;
+		}
+		case 0xA1: { // LDA ind,X
+			break;
+		}
+		case 0xA2: { // LDX immediate
+			cpu->x = cpu->program[cpu->pc++];
+			updateStatusRegister(cpu, cpu->x, 0);
+			cpu->cycles += 2;
+			
+			break;
+		}
+		case 0xA4: { // LDY zpg
+			break;
+		}
+		case 0xA5: { // LDA zpg
+			break;
+		}
+		case 0xA6: { // LDX zpg
+			break;
+		}
+		case 0xA8: { // TAY impl
+			break;
+		}
+		case 0xA9: { // LDA immediate
+			cpu->a = cpu->program[cpu->pc++];
+			updateStatusRegister(cpu, cpu->a, 0);
+			cpu->cycles += 2;
+			
+			break;
+		}
+		case 0xAA: { // TAX impl
+			break;
+		}
+		case 0xAC: { // LDY abs
+			break;
+		}
+		case 0xAD: { // LDA abs
+			break;
+		}
+		case 0xAE: { // LDX abs
+			break;
+		}
+		case 0xB0: { // BCS rel
+			break;
+		}
+		case 0xB1: { // LDA ind,Y
+			break;
+		}
+		case 0xB4: { // LDY zpg,X
+			break;
+		}
+		case 0xB5: { // LDA zpg,X
+			break;
+		}
+		case 0xB6: { // LDX zpg,Y
+			break;
+		}
+		case 0xB8: { // CLV impl
+			break;
+		}
+		case 0xB9: { // LDA abs,Y
+			break;
+		}
+		case 0xBA: { // TSX impl
+			break;
+		}
+		case 0xBC: { // LDY abs,X
+			break;
+		}
+		case 0xBD: { // LDA abs,X
+			break;
+		}
+		case 0xBE: { // LDX abs,Y
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x8A };
+	const char program[] = { 0xA2, 0xDA };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
@@ -830,10 +911,14 @@ int main() {
 	while(cpu.pc < sizeof(program)) {
 		step(&cpu);
 	}
+	
+	printf("### results:\n");
 
-	printMemory(&cpu);
+	// printMemory(&cpu);
 	printf("cpu->sp: %i\n", cpu.sp);
 	printf("cpu->a: %i\n", cpu.a);
+	printf("cpu->x: %i\n", cpu.x);
+	printf("cpu->y: %i\n", cpu.y);
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->cycles: %i\n", cpu.cycles);
 	// printf("%s\n", );
