@@ -613,6 +613,11 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x75: { // ADC zpg,X
+			int operation_byte = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			addWithCarry(cpu, operation_byte);
+			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x76: { // ROR zpg,X
@@ -632,7 +637,7 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x71, 0x07 };
+	const char program[] = { 0x75, 0x05 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
@@ -643,11 +648,7 @@ int main() {
 	
 	// cpu.ps = 0x1;
 	cpu.a = 0x10;
-	cpu.y = 0x2;
-	
-	char *buf2 = malloc(sizeof(char) * 1);
-	buf2[0] = 0x2a;
-	writeMemory(&cpu, buf2, 0x0137, 1);
+	cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
