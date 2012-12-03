@@ -49,7 +49,7 @@ char pullByteFromStack(CPU *cpu) {
 	return cpu->memory[0x100 + cpu->sp];
 }
 
-void updateStatusFlag(CPU *cpu, int operationResult, char ignore_bits) { // operationResult can be accumulator, X, Y or any result
+void updateStatusRegister(CPU *cpu, int operationResult, char ignore_bits) { // operationResult can be accumulator, X, Y or any result
 	if(ignore_bits & 0x2 == 0) { // if is not ignoring bit 1
 		cpu->ps = (operationResult == 0 ? cpu->ps | 0x2 : cpu->ps & 0xFD ); // sets zero flag (bit 1)
 	}
@@ -141,13 +141,13 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x01: { // ORA ind,X
 			cpu->a |= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			break;
 		}
 		case 0x05: { // ORA zpg
 			cpu->a |= cpu->memory[cpu->program[cpu->pc++]]; // OR with memory content at (next byte after opcode in zero page)
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
 			break;
 		}
@@ -156,7 +156,7 @@ void step(CPU *cpu) { // main code is here
 			int zeropage_byte = cpu->memory[zeropage_location];
 			zeropage_byte <<= 0x1; // left shift
 			
-			updateStatusFlag(cpu, zeropage_byte, 0);
+			updateStatusRegister(cpu, zeropage_byte, 0);
 			cpu->memory[zeropage_location] = zeropage_byte & 0xFF; // 0xFF removes anything set in a bit > 8;
 			cpu->cycles += 5;
 			
@@ -169,7 +169,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x09: { // ORA immediate
 			cpu->a |= cpu->program[cpu->pc++]; // just OR with next byte after opcode
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 2;
 			break;
 		}
@@ -177,7 +177,7 @@ void step(CPU *cpu) { // main code is here
 			int accumulator_byte = cpu->a;
 			accumulator_byte <<= 0x1; // left shift
 			
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->a = accumulator_byte & 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->cycles += 2;
 			
@@ -189,7 +189,7 @@ void step(CPU *cpu) { // main code is here
 			int mem_location = joinBytes(low_byte, high_byte);
 			
 			cpu->a |= cpu->memory[mem_location];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
@@ -201,7 +201,7 @@ void step(CPU *cpu) { // main code is here
 			int address_byte = cpu->memory[absolute_address];
 			address_byte <<= 0x1; // left shift
 			
-			updateStatusFlag(cpu, address_byte, 0);
+			updateStatusRegister(cpu, address_byte, 0);
 			address_byte &= 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->memory[absolute_address] = address_byte;
 			cpu->cycles += 6;
@@ -213,14 +213,14 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x11: { // ORA ind,Y
 			cpu->a |= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0x15: { // ORA zpg,X			
 			cpu->a |= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
@@ -230,7 +230,7 @@ void step(CPU *cpu) { // main code is here
 			int mem_value = cpu->memory[mem_location];
 			mem_value <<= 0x1;
 			
-			updateStatusFlag(cpu, mem_value, 0);
+			updateStatusRegister(cpu, mem_value, 0);
 			mem_value &= 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->memory[mem_location] = mem_value;
 			cpu->cycles += 6;
@@ -249,7 +249,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->program[cpu->pc++];
 			
 			cpu->a |= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x39 ? cpu->y : cpu->x), &cpu->cycles)];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
@@ -263,7 +263,7 @@ void step(CPU *cpu) { // main code is here
 			int mem_value = cpu->memory[mem_final_address];
 			mem_value <<= 0x1;
 			
-			updateStatusFlag(cpu, mem_value, 0);
+			updateStatusRegister(cpu, mem_value, 0);
 			mem_value &= 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->memory[mem_final_address] = mem_value;
 			cpu->cycles += 6;
@@ -283,7 +283,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x21: { // AND ind,X
 			cpu->a &= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			
 			break;
@@ -293,7 +293,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x25: { // AND zpg
 			cpu->a &= cpu->memory[cpu->program[cpu->pc++]]; // AND with memory content at (next byte after opcode in zero page)
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
 			break;
 		}
@@ -301,7 +301,7 @@ void step(CPU *cpu) { // main code is here
 			char zeropage_location = cpu->program[cpu->pc++];
 			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 1);
 			
-			updateStatusFlag(cpu, operation_byte, 0);
+			updateStatusRegister(cpu, operation_byte, 0);
 			cpu->memory[zeropage_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
 			cpu->cycles += 5;
 			
@@ -312,14 +312,14 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x29: { // AND immediate
 			cpu->a &= cpu->program[cpu->pc++]; // just OR with next byte after opcode
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 2;
 			break;
 		}
 		case 0x2A: { // ROL accumulator
 			int operation_byte = rotateByte(cpu, cpu->a, 1);
 			
-			updateStatusFlag(cpu, operation_byte, 0);
+			updateStatusRegister(cpu, operation_byte, 0);
 			cpu->a = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
 			cpu->cycles += 2;
 			
@@ -334,7 +334,7 @@ void step(CPU *cpu) { // main code is here
 			int mem_location = joinBytes(low_byte, high_byte);
 			
 			cpu->a &= cpu->memory[mem_location];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
@@ -345,7 +345,7 @@ void step(CPU *cpu) { // main code is here
 			int mem_location = joinBytes(low_byte, high_byte);
 			int operation_byte = rotateByte(cpu, cpu->memory[mem_location], 1);
 			
-			updateStatusFlag(cpu, operation_byte, 0);
+			updateStatusRegister(cpu, operation_byte, 0);
 			cpu->memory[mem_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
 			cpu->cycles += 6;
 			
@@ -356,14 +356,14 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x31: { // AND ind,Y
 			cpu->a &= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0x35: { // AND zpg,X			
 			cpu->a &= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
@@ -372,7 +372,7 @@ void step(CPU *cpu) { // main code is here
 			int zeropage_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
 			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 1);
 			
-			updateStatusFlag(cpu, operation_byte, 0);
+			updateStatusRegister(cpu, operation_byte, 0);
 			cpu->memory[zeropage_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
 			cpu->cycles += 6;
 			
@@ -387,7 +387,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->program[cpu->pc++];
 			
 			cpu->a &= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x39 ? cpu->y : cpu->x), &cpu->cycles)];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
@@ -399,7 +399,7 @@ void step(CPU *cpu) { // main code is here
 			int mem_final_address = absolute_address + cpu->x;
 			int operation_byte = rotateByte(cpu, cpu->memory[mem_final_address], 1);
 			
-			updateStatusFlag(cpu, operation_byte, 0);
+			updateStatusRegister(cpu, operation_byte, 0);
 			cpu->memory[mem_final_address] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
 			cpu->cycles += 7;
 
@@ -410,19 +410,19 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x41: { // EOR ind,X
 			cpu->a ^= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			break;
 		}
 		case 0x45: { // EOR zpg
 			cpu->a ^= cpu->memory[cpu->program[cpu->pc++]];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
 		}
 		case 0x46: { // LSR zpg
 			char zeropage_location = cpu->program[cpu->pc++];
 			int operation_byte = logicalShiftRight(cpu, cpu->memory[zeropage_location]);
-			updateStatusFlag(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			
 			cpu->memory[zeropage_location] = operation_byte;
 			cpu->cycles += 5;
@@ -434,13 +434,13 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x49: { // EOR immediate
 			cpu->a ^= cpu->program[cpu->pc++]; // just OR with next byte after opcode
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 2;
 			break;
 		}
 		case 0x4A: { // LSR accumulator
 			int operation_byte = logicalShiftRight(cpu, cpu->a);
-			updateStatusFlag(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			
 			cpu->a = operation_byte;
 			cpu->cycles += 2;
@@ -456,7 +456,7 @@ void step(CPU *cpu) { // main code is here
 			int mem_location = joinBytes(low_byte, high_byte);
 			
 			cpu->a ^= cpu->memory[mem_location];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
@@ -469,14 +469,14 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x51: { // EOR ind,Y
 			cpu->a ^= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0x55: { // EOR zpg,X
 			cpu->a ^= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
@@ -493,7 +493,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->program[cpu->pc++];
 			
 			cpu->a ^= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x59 ? cpu->y : cpu->x), &cpu->cycles)];
-			updateStatusFlag(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
