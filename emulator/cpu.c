@@ -541,7 +541,6 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->program[cpu->pc++];
 			
 			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, NULL);
-			printf("mem_location: %i\n", mem_location);
 			int operation_byte = logicalShiftRight(cpu, cpu->memory[mem_location]);
 			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			
@@ -628,6 +627,14 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x79:   // ADC abs,Y
 		case 0x7D: { // ADC abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int operation_byte = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x79 ? cpu->y : cpu->x), &cpu->cycles)];
+			
+			addWithCarry(cpu, operation_byte);
+			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x7E: { // ROR abs,X
@@ -637,18 +644,18 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x75, 0x05 };
+	const char program[] = { 0x79, 0x04, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x35;
 	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x07, 2);
+	writeMemory(&cpu, buf, 0x0105, 2);
 	
 	// cpu.ps = 0x1;
 	cpu.a = 0x10;
-	cpu.x = 0x2;
+	cpu.y = 0x1;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
