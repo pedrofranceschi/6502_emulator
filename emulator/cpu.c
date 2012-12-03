@@ -902,12 +902,24 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xB4: { // LDY zpg,X
+			cpu->y = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			updateStatusRegister(cpu, cpu->y, 0);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xB5: { // LDA zpg,X
+			cpu->a = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			updateStatusRegister(cpu, cpu->a, 0);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xB6: { // LDX zpg,Y
+			cpu->x = cpu->memory[addressForZeroPageYAddressing(cpu, cpu->program[cpu->pc++])];
+			updateStatusRegister(cpu, cpu->x, 0);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xB8: { // CLV impl
@@ -932,24 +944,24 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xB1, 0x05 };
+	const char program[] = { 0xB6, 0x03 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0xFE;
+	buf[0] = 0xFF;
 	buf[1] = 0x01;
 	writeMemory(&cpu, buf, 0x05, 2);
 	
 	// cpu.ps = 0x1;
 	cpu.a = 0x09;
-	cpu.x = 0x3;
+	cpu.x = 0x2;
 	cpu.y = 0x2;
 	
-	char *buf2 = malloc(sizeof(char) * 2);
-	buf2[0] = 0xFF;
-	buf2[1] = 0xEE;
-	writeMemory(&cpu, buf2, 0x0200, 2);
+	// char *buf2 = malloc(sizeof(char) * 2);
+	// buf2[0] = 0xFF;
+	// buf2[1] = 0xEE;
+	// writeMemory(&cpu, buf2, 0x0200, 2);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
