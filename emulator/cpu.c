@@ -462,6 +462,15 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x4E: { // LSR abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			int operation_byte = logicalShiftRight(cpu, cpu->memory[mem_location]);
+			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			
+			cpu->memory[mem_location] = operation_byte;
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0x50: { // BVC rel
@@ -502,16 +511,16 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x4A };
+	const char program[] = { 0x4E, 0x02, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	// char *buf = malloc(sizeof(char) * 2);
-	// buf[0] = 0x0;
+	char *buf = malloc(sizeof(char) * 1);
+	buf[0] = 0x35;
 	// buf[1] = 0x25;
-	// writeMemory(&cpu, buf, 0x06, 2);
+	writeMemory(&cpu, buf, 0x0102, 1);
 	
-	cpu.a = 0x3;
+	// cpu.a = 0x3;
 	// cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
