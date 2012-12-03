@@ -862,12 +862,33 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xAC: { // LDY abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			cpu->y = cpu->memory[mem_location];
+			updateStatusRegister(cpu, cpu->y, 0);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xAD: { // LDA abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			cpu->a = cpu->memory[mem_location];
+			updateStatusRegister(cpu, cpu->a, 0);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xAE: { // LDX abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			cpu->x = cpu->memory[mem_location];
+			updateStatusRegister(cpu, cpu->x, 0);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xB0: { // BCS rel
@@ -907,14 +928,14 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xA4, 0x05 };
+	const char program[] = { 0xAE, 0x05, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x15;
 	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x05, 2);
+	writeMemory(&cpu, buf, 0x0105, 2);
 	
 	// cpu.ps = 0x1;
 	cpu.a = 0x09;
