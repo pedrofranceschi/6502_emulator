@@ -571,6 +571,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x69: { // ADC immediate
+			int operation_byte = cpu->program[cpu->pc++];
+			addWithCarry(cpu, operation_byte);
+			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->cycles += 2;
 			break;
 		}
 		case 0x6A: { // ROR accumulator
@@ -611,7 +615,7 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x65, 0x07 };
+	const char program[] = { 0x69, 0x07 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
@@ -623,8 +627,6 @@ int main() {
 	// cpu.ps = 0x1;
 	cpu.a = 0xf0;
 	// cpu.x = 0x2;
-	// 
-	// 0xc0 + 0x35 245
 	
 	char *buf2 = malloc(sizeof(char) * 1);
 	buf2[0] = 0xFF;
