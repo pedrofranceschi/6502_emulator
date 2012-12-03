@@ -659,6 +659,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x76: { // ROR zpg,X
+			int zeropage_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 0);
+			
+			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->memory[zeropage_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0x78: { // SEI impl
@@ -683,19 +690,18 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x6E, 0x03, 0x01 };
+	const char program[] = { 0x76, 0x03 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x14;
-	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x0103, 2);
+	buf[1] = 0x07;
+	writeMemory(&cpu, buf, 0x05, 2);
 	
 	// cpu.ps = 0x1;
 	cpu.a = 0x11;
-	
-	// cpu.y = 0x1;
+	cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
