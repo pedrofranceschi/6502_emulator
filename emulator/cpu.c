@@ -828,12 +828,24 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xA4: { // LDY zpg
+			cpu->y = cpu->memory[cpu->program[cpu->pc++]];
+			updateStatusRegister(cpu, cpu->y, 0);
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0xA5: { // LDA zpg
+			cpu->a = cpu->memory[cpu->program[cpu->pc++]];
+			updateStatusRegister(cpu, cpu->a, 0);
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0xA6: { // LDX zpg
+			cpu->x = cpu->memory[cpu->program[cpu->pc++]];
+			updateStatusRegister(cpu, cpu->x, 0);
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0xA8: { // TAY impl
@@ -895,12 +907,12 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xA1, 0x3 };
+	const char program[] = { 0xA4, 0x05 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0x05;
+	buf[0] = 0x15;
 	buf[1] = 0x01;
 	writeMemory(&cpu, buf, 0x05, 2);
 	
@@ -909,10 +921,10 @@ int main() {
 	cpu.x = 0x2;
 	cpu.y = 0x3;
 	
-	char *buf2 = malloc(sizeof(char) * 2);
-	buf2[0] = 0xFF;
-	buf2[1] = 0xEE;
-	writeMemory(&cpu, buf2, 0x0105, 2);
+	// char *buf2 = malloc(sizeof(char) * 2);
+	// buf2[0] = 0xFF;
+	// buf2[1] = 0xEE;
+	// writeMemory(&cpu, buf2, 0x0105, 2);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
