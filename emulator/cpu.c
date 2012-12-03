@@ -763,7 +763,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x94: { // STY zpg,X
-			cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])] = cpu->x;
+			cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])] = cpu->y;
 			cpu->cycles += 4;
 			
 			break;
@@ -775,7 +775,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x96: { // STX zpg,Y
-			cpu->memory[addressForZeroPageYAddressing(cpu, cpu->program[cpu->pc++])] = cpu->y;
+			cpu->memory[addressForZeroPageYAddressing(cpu, cpu->program[cpu->pc++])] = cpu->x;
 			cpu->cycles += 4;
 			
 			break;
