@@ -703,6 +703,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x84: { // STY zpg
+			cpu->memory[cpu->program[cpu->pc++]] = cpu->y;
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0x85: { // STA zpg
@@ -712,6 +715,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x86: { // STX zpg
+			cpu->memory[cpu->program[cpu->pc++]] = cpu->x;
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0x88: { // DEY impl
@@ -721,6 +727,12 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x8C: { // STY abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);			
+			cpu->memory[mem_location] = cpu->y;
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x8D: { // STA abs
@@ -733,6 +745,12 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x8E: { // STX abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);			
+			cpu->memory[mem_location] = cpu->x;
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x90: { // BCC rel
@@ -745,6 +763,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x94: { // STY zpg,X
+			cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])] = cpu->x;
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x95: { // STA zpg,X
@@ -754,6 +775,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x96: { // STX zpg,Y
+			cpu->memory[addressForZeroPageYAddressing(cpu, cpu->program[cpu->pc++])] = cpu->y;
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x98: { // TYA impl
@@ -776,7 +800,7 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x9D, 0x02, 0x02 };
+	const char program[] = { 0x96, 0x02 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
@@ -788,6 +812,7 @@ int main() {
 	// cpu.ps = 0x1;
 	cpu.a = 0x09;
 	cpu.x = 0x2;
+	cpu.y = 0x3;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
