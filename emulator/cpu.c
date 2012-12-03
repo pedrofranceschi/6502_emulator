@@ -141,20 +141,13 @@ int signedByteValue(unsigned char byte) {
 
 void addWithCarry(CPU *cpu, int operation_byte) {
 	int accumulator_with_carry = (cpu->ps & 0x1 != 0 ? (cpu->a | 0x100) : cpu->a); // if carry bit is on, (accumulator + carry) = accumulator with bit 8 on
-	// printf("accumulator_with_carry: %i\n", accumulator_with_carry);
-	// printf("operation_byte: %i\n", operation_byte);
 	int result = accumulator_with_carry + operation_byte;
-	printf("result: %i\n", result);
 	
 	cpu->ps = ((result >> 0x8) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 	
-	// printf("(char)result: %i\n", (char)result);
-	// printf("result: %i\n", (char)result);
 	int complement_result = signedByteValue(accumulator_with_carry) + signedByteValue(operation_byte);
-	printf("complement_result: %i\n", complement_result);
 	
 	if(complement_result < -128 || complement_result > 127) { // overflow detection
-		printf("OVERFLOW FLAG!!!!!\n");
 		cpu->ps |= 0x40; // set overflow bit on (bit 6)
 	}
 	
