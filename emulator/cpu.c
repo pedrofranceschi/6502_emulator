@@ -58,8 +58,7 @@ void updateStatusRegister(CPU *cpu, int operationResult, char ignore_bits) { // 
 	}
 	
 	if(ignore_bits & 0x1 == 0) {  // if is not ignoring bit 0
-		int carry_bit = operationResult & 0x100; // moves bit 8 to carry bit
-		cpu->ps = (carry_bit == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
+		cpu->ps = ((operationResult >> 0x8) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 	}
 }
 
@@ -140,13 +139,14 @@ int signedByteValue(unsigned char byte) {
 	}
 }
 
-void addWithCarry(CPU *cpu, int operation_byte) {	
+void addWithCarry(CPU *cpu, int operation_byte) {
 	int accumulator_with_carry = (cpu->ps & 0x1 != 0 ? (cpu->a | 0x100) : cpu->a); // if carry bit is on, (accumulator + carry) = accumulator with bit 8 on
 	// printf("accumulator_with_carry: %i\n", accumulator_with_carry);
 	// printf("operation_byte: %i\n", operation_byte);
 	int result = accumulator_with_carry + operation_byte;
+	printf("result: %i\n", result);
 	
-	cpu->ps = ((result & 0x100) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
+	cpu->ps = ((result >> 0x8) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 	
 	// printf("(char)result: %i\n", (char)result);
 	// printf("result: %i\n", (char)result);
@@ -565,6 +565,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x65: { // ADC zpg
+			int operation_byte = cpu->memory[cpu->program[cpu->pc++]];
+			addWithCarry(cpu, operation_byte);
+			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->cycles += 6;
 			break;
 		}
 		case 0x66: { // ROR zpg
@@ -614,7 +618,7 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x61, 0x05 };
+	const char program[] = { 0x65, 0x07 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
@@ -623,8 +627,11 @@ int main() {
 	buf[1] = 0x0;
 	writeMemory(&cpu, buf, 0x07, 2);
 	
-	cpu.a = 0x81;
-	cpu.x = 0x2;
+	// cpu.ps = 0x1;
+	cpu.a = 0xf0;
+	// cpu.x = 0x2;
+	// 
+	// 0xc0 + 0x35 245
 	
 	char *buf2 = malloc(sizeof(char) * 1);
 	buf2[0] = 0xFF;
