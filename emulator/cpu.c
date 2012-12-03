@@ -434,21 +434,39 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x4E: { // LSR abs
+			break;
+		}
+		case 0x50: { // BVC rel
+			break;
+		}
+		case 0x51: { // EOR ind,Y
+			cpu->a ^= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 5;
+			
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x4D, 0x07, 0x03 };
+	const char program[] = { 0x51, 0x07 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 2);
+	char *buf = malloc(sizeof(char) * 3);
 	buf[0] = 0x0;
 	buf[1] = 0x49;
-	writeMemory(&cpu, buf, 0x0306, 2);
+	buf[2] = 0x02;
+	writeMemory(&cpu, buf, 0x06, 3);
 	
 	cpu.a = 0x17;
-	// cpu.x = 0x2;
+	cpu.y = 0x2;
+	
+	char *buf2 = malloc(sizeof(char));
+	buf2[0] = 0x28;
+	writeMemory(&cpu, buf2, 0x024B, 1);
 	
 	// char *buf2 = malloc(sizeof(char));
 	// buf2[0] = 0x27;
