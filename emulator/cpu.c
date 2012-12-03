@@ -131,13 +131,13 @@ int logicalShiftRight(CPU *cpu, int operation_byte) {
 	return operation_byte >> 0x1;
 }
 
-int signedByteValue(unsigned char byte) {
-	if(byte >= 0x80 && byte <= 0xFF) {
-		return (0x80 - (byte & 0x7F)) * -1;
-	} else {
-		return (byte & 0x7F);
-	}
-}
+// int signedByteValue(unsigned char byte) {
+// 	if(byte >= 0x80 && byte <= 0xFF) {
+// 		return (0x80 - (byte & 0x7F)) * -1;
+// 	} else {
+// 		return (byte & 0x7F);
+// 	}
+// }
 
 void addWithCarry(CPU *cpu, int operation_byte) {
 	int accumulator_with_carry = (cpu->ps & 0x1 != 0 ? (cpu->a | 0x100) : cpu->a); // if carry bit is on, (accumulator + carry) = accumulator with bit 8 on
@@ -145,7 +145,7 @@ void addWithCarry(CPU *cpu, int operation_byte) {
 	
 	cpu->ps = ((result >> 0x8) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 	
-	int complement_result = signedByteValue(accumulator_with_carry) + signedByteValue(operation_byte);
+	int complement_result = (char)accumulator_with_carry + (char)operation_byte;
 	
 	if(complement_result < -128 || complement_result > 127) { // overflow detection
 		cpu->ps |= 0x40; // set overflow bit on (bit 6)
