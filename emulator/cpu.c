@@ -50,14 +50,15 @@ char pullByteFromStack(CPU *cpu) {
 }
 
 void updateStatusRegister(CPU *cpu, int operationResult, char ignore_bits) { // operationResult can be accumulator, X, Y or any result
-	if(ignore_bits & 0x2 == 0) { // if is not ignoring bit 1
+	if((ignore_bits & 0x2) == 0) { // if is not ignoring bit 1
 		cpu->ps = (operationResult == 0 ? cpu->ps | 0x2 : cpu->ps & 0xFD ); // sets zero flag (bit 1)
 	}
-	if(ignore_bits & 0x80 == 0) {  // if is not ignoring bit 7
+	
+	if((ignore_bits & 0x80) == 0) {  // if is not ignoring bit 7
 		cpu->ps = (operationResult & 0x80 != 0 ? cpu->ps | 0x80 : cpu-> ps & 0x7F ); // sets negative flag (bit 7 of operationResult is set)
 	}
 	
-	if(ignore_bits & 0x1 == 0) {  // if is not ignoring bit 0
+	if((ignore_bits & 0x1) == 0) {  // if is not ignoring bit 0
 		cpu->ps = ((operationResult >> 0x8) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 	}
 }
@@ -100,10 +101,24 @@ int addressForZeroPageYAddressing(CPU *cpu, char byte) {
 }
 
 int rotateByte(CPU *cpu, int byte, int isLeftShift) {	
-	byte = (isLeftShift == 1 ? byte << 1 : byte >> 1);
-	
-	if(cpu->ps & 0x1 != 0) { // carry bit is on
-		byte |= 0x1; // turn on bit 0 on operation byte (carry bit shifted on bit 0)
+	if(isLeftShift == 1) {
+		byte <<= 1;
+		
+		if(cpu->ps & 0x1 != 0) { // carry bit is on
+			byte |= 0x1; // turn on bit 0 on operation byte (carry bit shifted on bit 0)
+		}
+	} else {
+		int pre_ps = cpu->ps;
+		
+		if(byte & 0x1 != 0) {
+			cpu->ps |= 0x1;
+		}
+		
+		byte >>= 1;
+		
+		if(pre_ps & 0x1 != 0) {
+			byte |= 0x80;
+		}
 	}
 	
 	return byte;
@@ -566,6 +581,15 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x66: { // ROR zpg
+			char zeropage_location = cpu->program[cpu->pc++];
+			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 0);
+			
+			printf("operation_byte: %i\n", operation_byte);
+			
+			updateStatusRegister(cpu, operation_byte, 0x1);
+			cpu->memory[zeropage_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
+			cpu->cycles += 5;
+			
 			break;
 		}
 		case 0x68: { // PLA impl
@@ -644,18 +668,18 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x79, 0x04, 0x01 };
+	const char program[] = { 0x66, 0x04 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0x35;
+	buf[0] = 0x14;
 	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x0105, 2);
+	writeMemory(&cpu, buf, 0x04, 2);
 	
 	// cpu.ps = 0x1;
-	cpu.a = 0x10;
-	cpu.y = 0x1;
+	// cpu.a = 0x10;
+	// cpu.y = 0x1;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
