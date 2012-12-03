@@ -170,7 +170,7 @@ void addWithCarry(CPU *cpu, int operation_byte) {
 }
 
 void step(CPU *cpu) { // main code is here
-	char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
+	unsigned char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	printf("currentOpcode: %i\n", currentOpcode);
 	switch(currentOpcode) {
 		case 0x00: { // BRK impl
@@ -696,21 +696,97 @@ void step(CPU *cpu) { // main code is here
 
 			break;
 		}
+		case 0x81: { // STA ind,X
+			cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])] = cpu->a;
+			cpu->cycles += 6;
+			
+			break;
+		}
+		case 0x84: { // STY zpg
+			break;
+		}
+		case 0x85: { // STA zpg
+			cpu->memory[cpu->program[cpu->pc++]] = cpu->a;
+			cpu->cycles += 3;
+			
+			break;
+		}
+		case 0x86: { // STX zpg
+			break;
+		}
+		case 0x88: { // DEY impl
+			break;
+		}
+		case 0x8A: { // TXA impl
+			break;
+		}
+		case 0x8C: { // STY abs
+			break;
+		}
+		case 0x8D: { // STA abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);			
+			cpu->memory[mem_location] = cpu->a;
+			cpu->cycles += 4;
+			
+			break;
+		}
+		case 0x8E: { // STX abs
+			break;
+		}
+		case 0x90: { // BCC rel
+			break;
+		}
+		case 0x91: { // STA ind,Y
+			cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], NULL)] = cpu->a;
+			cpu->cycles += 6;
+			
+			break;
+		}
+		case 0x94: { // STY zpg,X
+			break;
+		}
+		case 0x95: { // STA zpg,X
+			cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])] = cpu->a;
+			cpu->cycles += 4;
+			
+			break;
+		}
+		case 0x96: { // STX zpg,Y
+			break;
+		}
+		case 0x98: { // TYA impl
+			break;
+		}
+		case 0x99:   // STA abs,Y
+		case 0x9D: { // STA abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			
+			cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x99 ? cpu->y : cpu->x), NULL)] = cpu->a;
+			cpu->cycles += 5;
+			
+			break;
+		}
+		case 0x9A: { // TXS impl
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x7E, 0x03, 0x01 };
+	const char program[] = { 0x9D, 0x02, 0x02 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0x14;
-	buf[1] = 0x07;
-	writeMemory(&cpu, buf, 0x0105, 2);
+	// char *buf = malloc(sizeof(char) * 2);
+	// buf[0] = 0x05;
+	// buf[1] = 0x01;
+	// writeMemory(&cpu, buf, 0x05, 2);
 	
 	// cpu.ps = 0x1;
-	cpu.a = 0x11;
+	cpu.a = 0x09;
 	cpu.x = 0x2;
 	
 	printf("cpu->ps: %i\n", cpu.ps);
