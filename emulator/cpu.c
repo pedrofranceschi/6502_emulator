@@ -132,6 +132,35 @@ int logicalShiftRight(CPU *cpu, int operation_byte) {
 	return operation_byte >> 0x1;
 }
 
+int signedByteValue(unsigned char byte) {
+	if(byte >= 0x80 && byte <= 0xFF) {
+		return (0x80 - (byte & 0x7F)) * -1;
+	} else {
+		return (byte & 0x7F);
+	}
+}
+
+void addWithCarry(CPU *cpu, int operation_byte) {	
+	int accumulator_with_carry = (cpu->ps & 0x1 != 0 ? (cpu->a | 0x100) : cpu->a); // if carry bit is on, (accumulator + carry) = accumulator with bit 8 on
+	// printf("accumulator_with_carry: %i\n", accumulator_with_carry);
+	// printf("operation_byte: %i\n", operation_byte);
+	int result = accumulator_with_carry + operation_byte;
+	
+	cpu->ps = ((result & 0x100) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
+	
+	// printf("(char)result: %i\n", (char)result);
+	// printf("result: %i\n", (char)result);
+	int complement_result = signedByteValue(accumulator_with_carry) + signedByteValue(operation_byte);
+	printf("complement_result: %i\n", complement_result);
+	
+	if(complement_result < -128 || complement_result > 127) { // overflow detection
+		printf("OVERFLOW FLAG!!!!!\n");
+		cpu->ps |= 0x40; // set overflow bit on (bit 6)
+	}
+	
+	cpu->a = result & 0xFF; // just get first 8 bits
+}
+
 void step(CPU *cpu) { // main code is here
 	char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	printf("currentOpcode: %i\n", currentOpcode);
@@ -528,21 +557,78 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x61: { // ADC ind,X
+			int operation_byte = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			addWithCarry(cpu, operation_byte);
+			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->cycles += 6;
+			break;
+		}
+		case 0x65: { // ADC zpg
+			break;
+		}
+		case 0x66: { // ROR zpg
+			break;
+		}
+		case 0x68: { // PLA impl
+			break;
+		}
+		case 0x69: { // ADC immediate
+			break;
+		}
+		case 0x6A: { // ROR accumulator
+			break;
+		}
+		case 0x6C: { // JMP ind
+			break;
+		}
+		case 0x6D: { // ADC abs
+			break;
+		}
+		case 0x6E: { // ROR abs
+			break;
+		}
+		case 0x70: { // BVS rel
+			break;
+		}
+		case 0x71: { // ADC ind,Y
+			break;
+		}
+		case 0x75: { // ADC zpg,X
+			break;
+		}
+		case 0x76: { // ROR zpg,X
+			break;
+		}
+		case 0x78: { // SEI impl
+			break;
+		}
+		case 0x79:   // ADC abs,Y
+		case 0x7D: { // ADC abs,X
+			break;
+		}
+		case 0x7E: { // ROR abs,X
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x5E, 0x02, 0x01 };
+	const char program[] = { 0x61, 0x05 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 1);
+	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x35;
-	// buf[1] = 0x25;
-	writeMemory(&cpu, buf, 0x0104, 1);
+	buf[1] = 0x0;
+	writeMemory(&cpu, buf, 0x07, 2);
 	
-	// cpu.a = 0x3;
+	cpu.a = 0x81;
 	cpu.x = 0x2;
+	
+	char *buf2 = malloc(sizeof(char) * 1);
+	buf2[0] = 0xFF;
+	writeMemory(&cpu, buf2, 0x35, 1);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
