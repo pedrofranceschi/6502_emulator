@@ -584,8 +584,6 @@ void step(CPU *cpu) { // main code is here
 			char zeropage_location = cpu->program[cpu->pc++];
 			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 0);
 			
-			printf("operation_byte: %i\n", operation_byte);
-			
 			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->memory[zeropage_location] = operation_byte & 0xFF; // 0xFF removes anything set in bit > 8
 			cpu->cycles += 5;
