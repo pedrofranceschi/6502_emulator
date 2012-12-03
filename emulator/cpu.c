@@ -814,6 +814,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xA1: { // LDA ind,X
+			cpu->a = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			updateStatusRegister(cpu, cpu->a, 0);
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0xA2: { // LDX immediate
@@ -891,19 +895,24 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xA2, 0xDA };
+	const char program[] = { 0xA1, 0x3 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	// char *buf = malloc(sizeof(char) * 2);
-	// buf[0] = 0x05;
-	// buf[1] = 0x01;
-	// writeMemory(&cpu, buf, 0x05, 2);
+	char *buf = malloc(sizeof(char) * 2);
+	buf[0] = 0x05;
+	buf[1] = 0x01;
+	writeMemory(&cpu, buf, 0x05, 2);
 	
 	// cpu.ps = 0x1;
 	cpu.a = 0x09;
 	cpu.x = 0x2;
 	cpu.y = 0x3;
+	
+	char *buf2 = malloc(sizeof(char) * 2);
+	buf2[0] = 0xFF;
+	buf2[1] = 0xEE;
+	writeMemory(&cpu, buf2, 0x0105, 2);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
@@ -912,9 +921,9 @@ int main() {
 		step(&cpu);
 	}
 	
+	printMemory(&cpu);
+	
 	printf("### results:\n");
-
-	// printMemory(&cpu);
 	printf("cpu->sp: %i\n", cpu.sp);
 	printf("cpu->a: %i\n", cpu.a);
 	printf("cpu->x: %i\n", cpu.x);
