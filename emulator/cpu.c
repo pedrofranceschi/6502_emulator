@@ -447,26 +447,45 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0x55: { // EOR zpg,X
+			cpu->a ^= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 4;
+			
+			break;
+		}
+		case 0x56: { // LSR zpg,X
+			break;
+		}
+		case 0x58: { // CLI impl
+			break;
+		}
+		case 0x59:   // EOR abs,Y
+		case 0x5D: { // EOR abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			
+			cpu->a ^= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x59 ? cpu->y : cpu->x), &cpu->cycles)];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 4;
+			
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x51, 0x07 };
+	const char program[] = { 0x5D, 0x05, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 3);
+	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x0;
 	buf[1] = 0x49;
-	buf[2] = 0x02;
-	writeMemory(&cpu, buf, 0x06, 3);
+	writeMemory(&cpu, buf, 0x0106, 2);
 	
 	cpu.a = 0x17;
-	cpu.y = 0x2;
-	
-	char *buf2 = malloc(sizeof(char));
-	buf2[0] = 0x28;
-	writeMemory(&cpu, buf2, 0x024B, 1);
+	cpu.x = 0x2;
 	
 	// char *buf2 = malloc(sizeof(char));
 	// buf2[0] = 0x27;
