@@ -400,27 +400,43 @@ void step(CPU *cpu) { // main code is here
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			break;
 		}
+		case 0x45: { // EOR zpg
+			cpu->a ^= cpu->memory[cpu->program[cpu->pc++]];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 3;
+		}
+		case 0x46: { // LSR zpg
+			break;
+		}
+		case 0x48: { // PHA impl
+			break;
+		}
+		case 0x49: { // EOR immediate
+			cpu->a ^= cpu->program[cpu->pc++]; // just OR with next byte after opcode
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 2;
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x41, 0x05 };
+	const char program[] = { 0x45, 0x7 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 3);
+	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x0;
 	buf[1] = 0x49;
-	buf[2] = 0x02;
-	writeMemory(&cpu, buf, 0x6, 3);
+	writeMemory(&cpu, buf, 0x6, 2);
 	
-	cpu.a = 0x6;
+	cpu.a = 0x17;
 	cpu.x = 0x2;
 	
-	char *buf2 = malloc(sizeof(char));
-	buf2[0] = 0x27;
-	writeMemory(&cpu, buf2, 0x0249, 1);
-	free(buf2);
+	// char *buf2 = malloc(sizeof(char));
+	// buf2[0] = 0x27;
+	// writeMemory(&cpu, buf2, 0x0249, 1);
+	// free(buf2);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
