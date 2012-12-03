@@ -417,21 +417,38 @@ void step(CPU *cpu) { // main code is here
 			cpu->cycles += 2;
 			break;
 		}
+		case 0x4A: { // LSR accumulator
+			break;
+		}
+		case 0x4C: { // JMP abs
+			break;
+		}
+		case 0x4D: { // EOR abs
+			char low_byte = cpu->program[cpu->pc++];
+			char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			
+			cpu->a ^= cpu->memory[mem_location];
+			updateStatusFlag(cpu, cpu->a);
+			cpu->cycles += 4;
+			
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0x45, 0x7 };
+	const char program[] = { 0x4D, 0x07, 0x03 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x0;
 	buf[1] = 0x49;
-	writeMemory(&cpu, buf, 0x6, 2);
+	writeMemory(&cpu, buf, 0x0306, 2);
 	
 	cpu.a = 0x17;
-	cpu.x = 0x2;
+	// cpu.x = 0x2;
 	
 	// char *buf2 = malloc(sizeof(char));
 	// buf2[0] = 0x27;
