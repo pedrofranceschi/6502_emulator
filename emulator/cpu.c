@@ -555,6 +555,7 @@ void step(CPU *cpu) { // main code is here
 			addWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0x65: { // ADC zpg
@@ -562,6 +563,7 @@ void step(CPU *cpu) { // main code is here
 			addWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0x66: { // ROR zpg
@@ -575,6 +577,7 @@ void step(CPU *cpu) { // main code is here
 			addWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x6A: { // ROR accumulator
@@ -592,6 +595,7 @@ void step(CPU *cpu) { // main code is here
 			addWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x6E: { // ROR abs
@@ -601,6 +605,11 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x71: { // ADC ind,Y
+			int operation_byte = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
+			addWithCarry(cpu, operation_byte);
+			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			cpu->cycles += 5;
+			
 			break;
 		}
 		case 0x75: { // ADC zpg,X
@@ -623,22 +632,22 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x6D, 0x07, 0x01 };
+	const char program[] = { 0x71, 0x07 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
 	buf[0] = 0x35;
-	buf[1] = 0x0;
-	writeMemory(&cpu, buf, 0x0107, 2);
+	buf[1] = 0x01;
+	writeMemory(&cpu, buf, 0x07, 2);
 	
 	// cpu.ps = 0x1;
 	cpu.a = 0x10;
-	// cpu.x = 0x2;
+	cpu.y = 0x2;
 	
 	char *buf2 = malloc(sizeof(char) * 1);
-	buf2[0] = 0xFF;
-	writeMemory(&cpu, buf2, 0x35, 1);
+	buf2[0] = 0x2a;
+	writeMemory(&cpu, buf2, 0x0137, 1);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
