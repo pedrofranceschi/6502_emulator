@@ -1111,7 +1111,7 @@ void step(CPU *cpu) { // main code is here
 		case 0xDE: { // DEC abs,X
 			unsigned char low_byte = cpu->program[cpu->pc++];
 			unsigned char high_byte = cpu->program[cpu->pc++];
-			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, &(cpu->cycles));
+			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, NULL);
 			cpu->memory[mem_location] -= 0x1;
 			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
 			cpu->cycles += 7;
@@ -1147,6 +1147,11 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xE6: { // INC zpg
+			int mem_location = cpu->program[cpu->pc++];
+			cpu->memory[mem_location] += 0x1;
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			cpu->cycles += 5;
+			
 			break;
 		}
 		case 0xE8: { // INX impl
@@ -1185,6 +1190,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xEE: { // INC abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			cpu->memory[mem_location] += 0x1;
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0xF0: { // BEQ rel
@@ -1207,6 +1219,11 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xF6: { // INC zpg,X
+			int mem_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			cpu->memory[mem_location] += 0x1;
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0xF8: { // SED impl
@@ -1225,20 +1242,27 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xFE: { // INC abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, NULL);
+			cpu->memory[mem_location] += 0x1;
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			cpu->cycles += 7;
+			
 			break;
 		}
 	}
 }
 
 int main() {
-	const char program[] = { 0xF9, 0x02, 0x01 };
+	const char program[] = { 0xF6, 0x03 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0x04;
+	buf[0] = 0x08;
 	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x0105, 2);
+	writeMemory(&cpu, buf, 0x05, 2);
 	
 	// cpu.ps = 0x1;
 	
