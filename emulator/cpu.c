@@ -51,11 +51,11 @@ char pullByteFromStack(CPU *cpu) {
 
 void updateStatusRegister(CPU *cpu, int operationResult, char ignore_bits) { // operationResult can be accumulator, X, Y or any result
 	if((ignore_bits & 0x2) == 0) { // if is not ignoring bit 1
-		cpu->ps = (operationResult == 0 ? cpu->ps | 0x2 : cpu->ps & 0xFD ); // sets zero flag (bit 1)
+		cpu->ps = ((operationResult == 0) ? cpu->ps | 0x2 : cpu->ps & 0xFD ); // sets zero flag (bit 1)
 	}
 	
 	if((ignore_bits & 0x80) == 0) {  // if is not ignoring bit 7
-		cpu->ps = (operationResult & 0x80 != 0 ? cpu->ps | 0x80 : cpu-> ps & 0x7F ); // sets negative flag (bit 7 of operationResult is set)
+		cpu->ps = ((operationResult & 0x80) != 0 ? cpu->ps | 0x80 : cpu->ps & 0x7F ); // sets negative flag (bit 7 of operationResult is set)
 	}
 	
 	if((ignore_bits & 0x1) == 0) {  // if is not ignoring bit 0
@@ -849,6 +849,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xA8: { // TAY impl
+			cpu->y = cpu->a;
+			updateStatusRegister(cpu, cpu->y, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xA9: { // LDA immediate
@@ -859,6 +863,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xAA: { // TAX impl
+			cpu->x = cpu->a;
+			updateStatusRegister(cpu, cpu->x, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xAC: { // LDY abs
@@ -935,6 +943,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xBA: { // TSX impl
+			cpu->x = cpu->sp;
+			updateStatusRegister(cpu, cpu->x, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xBC: { // LDY abs,X
@@ -968,17 +980,18 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xBD, 0x03, 0x01 };
+	const char program[] = { 0xA8 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0xFF;
-	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x0105, 2);
+	// char *buf = malloc(sizeof(char) * 2);
+	// buf[0] = 0xFF;
+	// buf[1] = 0x01;
+	// writeMemory(&cpu, buf, 0x0105, 2);
 	
 	// cpu.ps = 0x1;
-	cpu.a = 0x09;
+	
+	cpu.a = 0x9;
 	cpu.x = 0x2;
 	cpu.y = 0x3;
 	
