@@ -1011,6 +1011,11 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xC6: { // DEC zpg
+			int mem_location = cpu->program[cpu->pc++];
+			cpu->memory[mem_location] -= 0x1;
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			cpu->cycles += 5;
+			
 			break;
 		}
 		case 0xC8: { // INY impl
@@ -1045,6 +1050,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xCE: { // DEC abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			cpu->memory[mem_location] -= 0x1;
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0xD0: { // BNE rel
@@ -1063,6 +1075,11 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xD6: { // DEC zpg,X
+			int mem_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			cpu->memory[mem_location] -= 0x1;
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0xD8: { // CLD impl
@@ -1078,20 +1095,27 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xDE: { // DEC abs,X
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, &(cpu->cycles));
+			cpu->memory[mem_location] -= 0x1;
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			cpu->cycles += 7;
+			
 			break;
 		}
 	}
 }
 
 int main() {
-	const char program[] = { 0xD9, 0x03, 0x01 };
+	const char program[] = { 0xD6, 0x03 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	// char *buf = malloc(sizeof(char) * 2);
-	// buf[0] = 0x03;
-	// buf[1] = 0x01;
-	// writeMemory(&cpu, buf, 0x05, 2);
+	char *buf = malloc(sizeof(char) * 2);
+	buf[0] = 0x03;
+	buf[1] = 0x01;
+	writeMemory(&cpu, buf, 0x05, 2);
 	
 	// cpu.ps = 0x1;
 	
@@ -1099,10 +1123,10 @@ int main() {
 	cpu.x = 0x2;
 	cpu.y = 0x2;
 	
-	char *buf2 = malloc(sizeof(char) * 2);
-	buf2[0] = 0x08;
-	buf2[1] = 0xEE;
-	writeMemory(&cpu, buf2, 0x0105, 2);
+	// char *buf2 = malloc(sizeof(char) * 2);
+	// buf2[0] = 0x08;
+	// buf2[1] = 0xEE;
+	// writeMemory(&cpu, buf2, 0x0105, 2);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
