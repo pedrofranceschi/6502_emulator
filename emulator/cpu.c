@@ -205,12 +205,14 @@ void step(CPU *cpu) { // main code is here
 			cpu->a |= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 6; // this operation takes 6 cycles;
+			
 			break;
 		}
 		case 0x05: { // ORA zpg
 			cpu->a |= cpu->memory[cpu->program[cpu->pc++]]; // OR with memory content at (next byte after opcode in zero page)
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0x06: { // ASL zpg
@@ -227,6 +229,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x08: { // PHP impl
 			pushByteToStack(cpu, cpu->ps);
 			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0x09: { // ORA immediate
@@ -370,6 +373,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x28: { // PLP impl
+			cpu->ps = pullByteFromStack(cpu);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x29: { // AND immediate
@@ -441,6 +447,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x38: { // SEC impl
+			cpu->ps |= 0x1; // turn carry bit (0) on
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x39:   // AND abs,Y
@@ -492,6 +501,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x48: { // PHA impl
+			pushByteToStack(cpu, cpu->a);
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0x49: { // EOR immediate
@@ -563,6 +575,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x58: { // CLI impl
+			cpu->ps &= 0xFB; // turn interrupt bit (3) off
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x59:   // EOR abs,Y
@@ -616,6 +631,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x68: { // PLA impl
+			cpu->a = pullByteFromStack(cpu);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x69: { // ADC immediate
@@ -692,6 +710,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x78: { // SEI impl
+			cpu->ps |= 0x4; // set interrupt disable bit (2) on
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x79:   // ADC abs,Y
@@ -960,6 +981,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xB8: { // CLV impl
+			cpu->ps &= 0xBF; // set overflow bit off (bit 6)
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xB9: { // LDA abs,Y
@@ -1109,7 +1133,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xD8: { // CLD impl
-			break;
+			printf("Decimal mode is not supported on this emulator.\n");
+			exit(-1);
 		}
 		case 0xD9:   // CMP abs,Y			
 		case 0xDD: { // CMP abs,X
@@ -1181,7 +1206,9 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
-		case 0xEA: { // NOP impl
+		case 0xEA: { // NOP impl (does nothing)
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xEC: { // CPX abs
@@ -1243,7 +1270,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xF8: { // SED impl
-			break;
+			printf("Decimal flag is not supported on this emulator.\n");
+			exit(-1);
 		}
 		case 0xF9:   // SBC abs,Y
 		case 0xFD: { // SBC abs,X
@@ -1271,7 +1299,7 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xE8 };
+	const char program[] = { 0x38, 0x78, 0x58 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
