@@ -169,6 +169,16 @@ void addWithCarry(CPU *cpu, int operation_byte) {
 	cpu->a = result & 0xFF; // just get first 8 bits
 }
 
+void compareBytes(CPU *cpu, unsigned char byte1, unsigned char byte2) {
+	// 3, 4
+	// y, #
+	printf("byte1: %i\n", byte1);
+	printf("byte2: %i\n", byte2);
+	cpu->ps = ((byte1 >= byte2) ? cpu->ps | 0x01 : cpu->ps & 0xFE); // updates carry bit (0) on processor status flag
+	cpu->ps = ((byte1 == byte2) ? cpu->ps | 0x02 : cpu->ps & 0xFD); // updates zero bit (0) on processor status flag
+	updateStatusRegister(cpu, byte1 - byte2, 0x3); // 0x3 = ignores zero and carry bits
+}
+
 void step(CPU *cpu) { // main code is here
 	unsigned char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	printf("currentOpcode: %i\n", currentOpcode);
@@ -976,18 +986,57 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0xC0: { // CPY immediate
+			compareBytes(cpu, cpu->y, cpu->program[cpu->pc++]);
+			cpu->cycles += 2;
+			
+			break;
+		}
+		case 0xC1: { // CMP ind,X
+			compareBytes(cpu, cpu->a, cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])]);
+			cpu->cycles += 6;
+			
+			break;
+		}
+		case 0xC4: { // CPY zpg
+			break;
+		}
+		case 0xC5: { // CMP zpg
+			break;
+		}
+		case 0xC6: { // DEC zpg
+			break;
+		}
+		case 0xC8: { // INY impl
+			break;
+		}
+		case 0xC9: { // CMP immediate
+			break;
+		}
+		case 0xCA: { // DEX impl
+			break;
+		}
+		case 0xCC: { // CPY abs
+			break;
+		}
+		case 0xCD: { // CMP abs
+			break;
+		}
+		case 0xCE: { // DEC abs
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0xA8 };
+	const char program[] = { 0xC1, 0x3 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	// char *buf = malloc(sizeof(char) * 2);
-	// buf[0] = 0xFF;
-	// buf[1] = 0x01;
-	// writeMemory(&cpu, buf, 0x0105, 2);
+	char *buf = malloc(sizeof(char) * 2);
+	buf[0] = 0x05;
+	buf[1] = 0x01;
+	writeMemory(&cpu, buf, 0x05, 2);
 	
 	// cpu.ps = 0x1;
 	
@@ -995,10 +1044,10 @@ int main() {
 	cpu.x = 0x2;
 	cpu.y = 0x3;
 	
-	// char *buf2 = malloc(sizeof(char) * 2);
-	// buf2[0] = 0xFF;
-	// buf2[1] = 0xEE;
-	// writeMemory(&cpu, buf2, 0x0200, 2);
+	char *buf2 = malloc(sizeof(char) * 2);
+	buf2[0] = 0x08;
+	buf2[1] = 0xEE;
+	writeMemory(&cpu, buf2, 0x0105, 2);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
