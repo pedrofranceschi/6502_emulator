@@ -999,9 +999,15 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xC4: { // CPY zpg
+			compareBytes(cpu, cpu->y, cpu->memory[cpu->program[cpu->pc++]]);
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0xC5: { // CMP zpg
+			compareBytes(cpu, cpu->a, cpu->memory[cpu->program[cpu->pc++]]);
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0xC6: { // DEC zpg
@@ -1011,15 +1017,31 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xC9: { // CMP immediate
+			compareBytes(cpu, cpu->a, cpu->program[cpu->pc++]);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xCA: { // DEX impl
 			break;
 		}
 		case 0xCC: { // CPY abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			printf("mem_location: %i\n", mem_location);
+			compareBytes(cpu, cpu->y, cpu->memory[mem_location]);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xCD: { // CMP abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			compareBytes(cpu, cpu->a, cpu->memory[mem_location]);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0xCE: { // DEC abs
@@ -1029,25 +1051,25 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xC1, 0x3 };
+	const char program[] = { 0xCD, 0x05, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0x05;
+	buf[0] = 0x06;
 	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x05, 2);
+	writeMemory(&cpu, buf, 0x0105, 2);
 	
 	// cpu.ps = 0x1;
 	
-	cpu.a = 0x9;
+	cpu.a = 0x6;
 	cpu.x = 0x2;
-	cpu.y = 0x3;
+	cpu.y = 0x6;
 	
-	char *buf2 = malloc(sizeof(char) * 2);
-	buf2[0] = 0x08;
-	buf2[1] = 0xEE;
-	writeMemory(&cpu, buf2, 0x0105, 2);
+	// char *buf2 = malloc(sizeof(char) * 2);
+	// buf2[0] = 0x08;
+	// buf2[1] = 0xEE;
+	// writeMemory(&cpu, buf2, 0x0107, 2);
 	
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
