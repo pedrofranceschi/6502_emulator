@@ -1034,7 +1034,6 @@ void step(CPU *cpu) { // main code is here
 			unsigned char low_byte = cpu->program[cpu->pc++];
 			unsigned char high_byte = cpu->program[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
-			printf("mem_location: %i\n", mem_location);
 			compareBytes(cpu, cpu->y, cpu->memory[mem_location]);
 			cpu->cycles += 4;
 			
@@ -1104,18 +1103,87 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		case 0xE0: { // CPX immediate
+			compareBytes(cpu, cpu->x, cpu->program[cpu->pc++]);
+			cpu->cycles += 2;
+			
+			break;
+		}
+		case 0xE1: { // SBC ind,X
+			break;
+		}
+		case 0xE4: { // CPX zpg
+			compareBytes(cpu, cpu->x, cpu->memory[cpu->program[cpu->pc++]]);
+			cpu->cycles += 3;
+			
+			break;
+		}
+		case 0xE5: { // SBC zpg
+			break;
+		}
+		case 0xE6: { // INC zpg
+			break;
+		}
+		case 0xE8: { // INX impl
+			break;
+		}
+		case 0xE9: { // SBC immediate
+			break;
+		}
+		case 0xEA: { // NOP impl
+			break;
+		}
+		case 0xEC: { // CPX abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			compareBytes(cpu, cpu->x, cpu->memory[mem_location]);
+			cpu->cycles += 4;
+			
+			break;
+		}
+		case 0xED: { // SBC abs
+			break;
+		}
+		case 0xEE: { // INC abs
+			break;
+		}
+		case 0xF0: { // BEQ rel
+			break;
+		}
+		case 0xF1: { // SBC ind,Y
+			break;
+		}
+		case 0xF5: { // SBC zpg,X
+			break;
+		}
+		case 0xF6: { // INC zpg,X
+			break;
+		}
+		case 0xF8: { // SED impl
+			break;
+		}
+		case 0xF9: { // SBC abs,Y
+			break;
+		}
+		case 0xFD: { // SBC abs,X
+			break;
+		}
+		case 0xFE: { // INC abs,X
+			break;
+		}
 	}
 }
 
 int main() {
-	const char program[] = { 0xD6, 0x03 };
+	const char program[] = { 0xEC, 0x05, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
 	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0x03;
+	buf[0] = 0x02;
 	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x05, 2);
+	writeMemory(&cpu, buf, 0x0105, 2);
 	
 	// cpu.ps = 0x1;
 	
