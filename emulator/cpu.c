@@ -744,6 +744,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x88: { // DEY impl
+			cpu->y -= 0x1;
+			updateStatusRegister(cpu, cpu->y, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x8A: { // TXA impl
@@ -1034,6 +1038,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xC8: { // INY impl
+			cpu->y += 0x1;
+			updateStatusRegister(cpu, cpu->y, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xC9: { // CMP immediate
@@ -1043,6 +1051,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xCA: { // DEX impl
+			cpu->x -= 0x1;
+			updateStatusRegister(cpu, cpu->x, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xCC: { // CPY abs
@@ -1155,6 +1167,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xE8: { // INX impl
+			cpu->x += 0x1;
+			updateStatusRegister(cpu, cpu->x, 0);
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xE9: { // SBC immediate
@@ -1255,7 +1271,7 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xF6, 0x03 };
+	const char program[] = { 0xE8 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
