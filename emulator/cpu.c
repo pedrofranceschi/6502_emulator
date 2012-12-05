@@ -522,6 +522,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x4C: { // JMP abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			
+			cpu->pc = cpu->memory[mem_location];
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0x4D: { // EOR abs
@@ -654,6 +661,14 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x6C: { // JMP ind
+			int indirect_mem_location = joinBytes(cpu->program[cpu->pc++], cpu->program[cpu->pc++]);
+			unsigned char low_byte = cpu->memory[indirect_mem_location];
+			unsigned char high_byte = cpu->memory[indirect_mem_location + 1];
+			int real_memory_location = joinBytes(low_byte, high_byte);
+			
+			cpu->pc = cpu->memory[real_memory_location];
+			cpu->cycles += 5;
+			
 			break;
 		}
 		case 0x6D: { // ADC abs
@@ -1299,14 +1314,16 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x38, 0x78, 0x58 };
+	const char program[] = { 0xC8, 0x6C, 0x05, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0x08;
+	char *buf = malloc(sizeof(char) * 4);
+	buf[0] = 0x07;
 	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x05, 2);
+	buf[2] = 0x00;
+	buf[3] = 0x00;
+	writeMemory(&cpu, buf, 0x0105, 4);
 	
 	// cpu.ps = 0x1;
 	
