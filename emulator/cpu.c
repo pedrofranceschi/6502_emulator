@@ -312,7 +312,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char low_byte = cpu->program[cpu->pc++];
 			unsigned char high_byte = cpu->program[cpu->pc++];
 			
-			cpu->a |= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x39 ? cpu->y : cpu->x), &cpu->cycles)];
+			cpu->a |= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x19 ? cpu->y : cpu->x), &cpu->cycles)];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
