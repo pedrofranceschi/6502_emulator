@@ -177,20 +177,31 @@ void subtractWithCarry(CPU *cpu, int operation_byte) {
 }
 
 void compareBytes(CPU *cpu, unsigned char byte1, unsigned char byte2) {
-	// 3, 4
-	// y, #
-	printf("byte1: %i\n", byte1);
-	printf("byte2: %i\n", byte2);
 	cpu->ps = ((byte1 >= byte2) ? cpu->ps | 0x01 : cpu->ps & 0xFE); // updates carry bit (0) on processor status flag
 	cpu->ps = ((byte1 == byte2) ? cpu->ps | 0x02 : cpu->ps & 0xFD); // updates zero bit (0) on processor status flag
 	updateStatusRegister(cpu, byte1 - byte2, 0x3); // 0x3 = ignores zero and carry bits
 }
 
 void testByte(CPU *cpu, char byte) {
-	printf("byte: %i\n", byte);
 	cpu->ps = ((byte & 0x40) != 0 ? cpu->ps | 0x40 : cpu->ps & 0xBF ); // if bit 6 is on on byte... turn bit 6 on on processor status (and vice-versa)
 	cpu->ps = ((byte & 0x80) != 0 ? cpu->ps | 0x80 : cpu->ps & 0x7F ); // if bit 7 is on on byte... turn bit 7 on on processor status (and vice-versa)
 	updateStatusRegister(cpu, (byte & cpu->a), 0xFD); // 0xFD = ignores all bits except bit 2 (just updates zero flag)
+}
+
+void branchToRelativeAddressIf(CPU *cpu, char relative_address, int condition) {
+	if(!condition) return;
+	
+	int branch_location = cpu->pc + relative_address;
+	int page_boundary = calculatePageBoundary(cpu->pc, branch_location);
+	cpu->pc = branch_location;
+	
+	if(branch_location > page_boundary) {
+		// branch to different page
+		cpu->cycles += 2;
+	} else {
+		// branch to same page
+		cpu->cycles += 1;
+	}
 }
 
 void step(CPU *cpu) { // main code is here
@@ -273,6 +284,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x10: { // BPL rel
+			int branch_address = cpu->program[cpu->pc++];
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x80) == 0)); // if bit 7 is off
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x11: { // ORA ind,Y
@@ -429,6 +444,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x30: { // BMI rel
+			int branch_address = cpu->program[cpu->pc++];
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x80) != 0)); // if bit 7 is on
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x31: { // AND ind,Y
@@ -564,6 +583,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x50: { // BVC rel
+			int branch_address = cpu->program[cpu->pc++];
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) == 0)); // if bit 6 is on
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x51: { // EOR ind,Y
@@ -705,6 +728,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x70: { // BVS rel
+			int branch_address = cpu->program[cpu->pc++];
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) != 0)); // if bit 6 is off
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x71: { // ADC ind,Y
@@ -830,6 +857,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x90: { // BCC rel
+			int branch_address = cpu->program[cpu->pc++];
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x1) == 0)); // if bit 0 is off
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0x91: { // STA ind,Y
@@ -974,6 +1005,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xB0: { // BCS rel
+			int branch_address = cpu->program[cpu->pc++];
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x1) != 0)); // if bit 0 is on
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xB1: { // LDA ind,Y
@@ -1134,6 +1169,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xD0: { // BNE rel
+			int branch_address = cpu->program[cpu->pc++];
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x2) == 0)); // if bit 2 is off
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xD1: { // CMP ind,Y
@@ -1267,6 +1306,10 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xF0: { // BEQ rel
+			int branch_address = cpu->program[cpu->pc++];
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x2) != 0)); // if bit 1 is on
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xF1: { // SBC ind,Y
@@ -1323,7 +1366,9 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0x2C, 0x05, 0x01 };
+	// A201860038A00798E903A818A9028501A60165008501860088D0F5
+	// const char program[] = { 0xC8, 0x10, 0xFD };
+	const char program[] = { 0xA2, 0x01, 0x86, 0x00, 0x38, 0xA0, 0x07, 0x98, 0xE9, 0x03, 0xA8, 0x18, 0xA9, 0x02, 0x85, 0x01, 0xA6, 0x01, 0x65, 0x00, 0x85, 0x01, 0x86, 0x00, 0x88, 0xD0, 0xF5 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
