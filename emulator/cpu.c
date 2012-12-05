@@ -146,14 +146,6 @@ int logicalShiftRight(CPU *cpu, int operation_byte) {
 	return operation_byte >> 0x1;
 }
 
-// int signedByteValue(unsigned char byte) {
-// 	if(byte >= 0x80 && byte <= 0xFF) {
-// 		return (0x80 - (byte & 0x7F)) * -1;
-// 	} else {
-// 		return (byte & 0x7F);
-// 	}
-// }
-
 void addWithCarry(CPU *cpu, int operation_byte) {
 	int accumulator_with_carry = ((cpu->ps & 0x1) != 0 ? (cpu->a | 0x100) : cpu->a); // if carry bit is on, (accumulator + carry) = accumulator with bit 8 on
 	int result = accumulator_with_carry + operation_byte;
@@ -192,6 +184,13 @@ void compareBytes(CPU *cpu, unsigned char byte1, unsigned char byte2) {
 	cpu->ps = ((byte1 >= byte2) ? cpu->ps | 0x01 : cpu->ps & 0xFE); // updates carry bit (0) on processor status flag
 	cpu->ps = ((byte1 == byte2) ? cpu->ps | 0x02 : cpu->ps & 0xFD); // updates zero bit (0) on processor status flag
 	updateStatusRegister(cpu, byte1 - byte2, 0x3); // 0x3 = ignores zero and carry bits
+}
+
+void testByte(CPU *cpu, char byte) {
+	printf("byte: %i\n", byte);
+	cpu->ps = ((byte & 0x40) != 0 ? cpu->ps | 0x40 : cpu->ps & 0xBF ); // if bit 6 is on on byte... turn bit 6 on on processor status (and vice-versa)
+	cpu->ps = ((byte & 0x80) != 0 ? cpu->ps | 0x80 : cpu->ps & 0x7F ); // if bit 7 is on on byte... turn bit 7 on on processor status (and vice-versa)
+	updateStatusRegister(cpu, (byte & cpu->a), 0xFD); // 0xFD = ignores all bits except bit 2 (just updates zero flag)
 }
 
 void step(CPU *cpu) { // main code is here
@@ -354,6 +353,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x24: { // BIT zpg
+			testByte(cpu, cpu->memory[cpu->program[cpu->pc++]]);
+			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0x25: { // AND zpg
@@ -394,6 +396,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x2C: { // BIT abs
+			unsigned char low_byte = cpu->program[cpu->pc++];
+			unsigned char high_byte = cpu->program[cpu->pc++];
+			int mem_location = joinBytes(low_byte, high_byte);
+			
+			testByte(cpu, cpu->memory[mem_location]);
+			cpu->cycles += 4;
+			
 			break;
 		}
 		case 0x2D: { // AND abs
@@ -1314,20 +1323,18 @@ void step(CPU *cpu) { // main code is here
 }
 
 int main() {
-	const char program[] = { 0xC8, 0x6C, 0x05, 0x01 };
+	const char program[] = { 0x2C, 0x05, 0x01 };
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 4);
-	buf[0] = 0x07;
+	char *buf = malloc(sizeof(char) * 2);
+	buf[0] = 0xC0;
 	buf[1] = 0x01;
-	buf[2] = 0x00;
-	buf[3] = 0x00;
-	writeMemory(&cpu, buf, 0x0105, 4);
+	writeMemory(&cpu, buf, 0x0105, 2);
 	
 	// cpu.ps = 0x1;
 	
-	cpu.a = 0x8;
+	cpu.a = 0x7;
 	cpu.x = 0x2;
 	cpu.y = 0x3;
 	
