@@ -29,7 +29,7 @@ void printMemory(CPU *cpu) {
 	for(i = 0; i < MEMORY_PAGES; i++) {
 		printf("=== Page %i\n", i);
 		for(j = 0;  j < PAGE_SIZE; j++) {
-			printf("%i ", cpu->memory[(i * PAGE_SIZE) + j]);
+			printf("%x ", cpu->memory[(i * PAGE_SIZE) + j]);
 		}
 		printf("\n");
 	}
@@ -84,7 +84,7 @@ int addressForIndirectIndexedAddressing(CPU *cpu, char byte, int *cycles) {
 	unsigned char operation_high_byte = operation_low_byte + 1;
 	int full_address = joinBytes(cpu->memory[operation_low_byte], cpu->memory[operation_high_byte]);
 	
-	if(full_address + cpu->y > calculatePageBoundary(full_address, full_address + cpu->y)) {
+	if(full_address + cpu->y > calculatePageBoundary(full_address, full_address + cpu->y) && cycles != NULL) {
 		// page boundary crossed, +1 CPU cycle
 		(*cycles)++;
 	}
@@ -130,7 +130,7 @@ int addressForAbsoluteAddedAddressing(CPU *cpu, unsigned char low_byte, unsigned
 	
 	int page_boundary = calculatePageBoundary(absolute_address, mem_final_address);
 	
-	if(mem_final_address > page_boundary) {
+	if(mem_final_address > page_boundary && cycles != NULL) {
 		// page boundary crossed, +1 CPU cycle
 		(*cycles)++;
 	}
@@ -206,7 +206,7 @@ void branchToRelativeAddressIf(CPU *cpu, char relative_address, int condition) {
 
 void step(CPU *cpu) { // main code is here
 	unsigned char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
-	printf("currentOpcode: %i\n", currentOpcode);
+	printf("currentOpcode: %x\n", currentOpcode);
 	switch(currentOpcode) {
 		case 0x00: { // BRK impl
 			break;
@@ -354,7 +354,9 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->program[cpu->pc++];
 			int absolute_address = joinBytes(low_byte, high_byte);
 			
-			pushByteToStack(cpu, cpu->pc - 1); // push (program counter - 1) to stack
+			int program_counter = cpu->pc - 1;
+			pushByteToStack(cpu, program_counter >> 0x8); // push second byte of program counter on stack
+			pushByteToStack(cpu, program_counter & 0xFF); // push first byte of program counter on stack
 			cpu->pc = absolute_address;
 			cpu->cycles += 6;
 			
@@ -505,6 +507,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x40: { // RTI impl
+			cpu->ps = pullByteFromStack(cpu);
+			unsigned char low_byte = pullByteFromStack(cpu); // pull second byte of program counter on stack
+			unsigned char high_byte = pullByteFromStack(cpu); // pull first byte of program counter on stack
+			int absolute_address = joinBytes(low_byte, high_byte) + 1;
+			cpu->pc = absolute_address;
+			cpu->cycles += 6;
+			
 			break;
 		}
 		case 0x41: { // EOR ind,X
@@ -640,6 +649,15 @@ void step(CPU *cpu) { // main code is here
 			
 			cpu->memory[mem_location] = operation_byte;
 			cpu->cycles += 7;
+			
+			break;
+		}
+		case 0x60: { // RTS impl
+			unsigned char low_byte = pullByteFromStack(cpu); // pull second byte of program counter on stack
+			unsigned char high_byte = pullByteFromStack(cpu); // pull first byte of program counter on stack
+			int absolute_address = joinBytes(low_byte, high_byte) + 1;
+			cpu->pc = absolute_address;
+			cpu->cycles += 6;
 			
 			break;
 		}
@@ -1365,23 +1383,48 @@ void step(CPU *cpu) { // main code is here
 	}
 }
 
-int main() {
+int readFileBytes(const char *name, char **program)
+{
+    FILE *fl = fopen(name, "r");
+    fseek(fl, 0, SEEK_END);
+    int program_length = (int)ftell(fl);
+    // char *ret = malloc(program_length);
+	*program = malloc(program_length);
+    fseek(fl, 0, SEEK_SET);
+    fread(*program, 1, program_length, fl);
+    fclose(fl);
+// printf("program_length: %i\n", program_length);
+    return program_length;
+}
+
+int main(int argc, char *argv[]) {
 	// A201860038A00798E903A818A9028501A60165008501860088D0F5
-	// const char program[] = { 0xC8, 0x10, 0xFD };
-	const char program[] = { 0xA2, 0x01, 0x86, 0x00, 0x38, 0xA0, 0x07, 0x98, 0xE9, 0x03, 0xA8, 0x18, 0xA9, 0x02, 0x85, 0x01, 0xA6, 0x01, 0x65, 0x00, 0x85, 0x01, 0x86, 0x00, 0x88, 0xD0, 0xF5 };
+	// const char program[] = { 0xC8, 0x20, 0x00, 0x00 };
+	// const char program[] = { 0xA2, 0x01, 0x86, 0x00, 0x38, 0xA0, 0x07, 0x98, 0xE9, 0x03, 0xA8, 0x18, 0xA9, 0x02, 0x85, 0x01, 0xA6, 0x01, 0x65, 0x00, 0x85, 0x01, 0x86, 0x00, 0x88, 0xD0, 0xF5 };
+	
+	if(argc != 2) {
+		printf("Usage: %s program \n", argv[0]);
+		return -1;
+	}
+	
+	char *program;
+	int program_length = readFileBytes(argv[1], &program);
+	
+	printf("program: %i\n", program_length);
+	
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
 
-	char *buf = malloc(sizeof(char) * 2);
-	buf[0] = 0xC0;
-	buf[1] = 0x01;
-	writeMemory(&cpu, buf, 0x0105, 2);
+	// char *buf = malloc(sizeof(char) * 2);
+	// buf[0] = 0xC0;
+	// buf[1] = 0x01;
+	// writeMemory(&cpu, buf, 0x0105, 2);
 	
 	// cpu.ps = 0x1;
 	
-	cpu.a = 0x7;
-	cpu.x = 0x2;
-	cpu.y = 0x3;
+	// cpu.a = 0x7;
+	// cpu.x = 0x2;
+	// cpu.y = 0x3;
 	
 	// char *buf2 = malloc(sizeof(char) * 2);
 	// buf2[0] = 0x08;
@@ -1391,7 +1434,7 @@ int main() {
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->sp: %i\n", cpu.sp);
 	
-	while(cpu.pc < sizeof(program)) {
+	while(cpu.pc < program_length) {
 		step(&cpu);
 	}
 	
@@ -1405,7 +1448,9 @@ int main() {
 	printf("cpu->ps: %i\n", cpu.ps);
 	printf("cpu->cycles: %i\n", cpu.cycles);
 	// printf("%s\n", );
-	// printbitssimple(cpu.ps);
+	// printbitssimple(cpu.ps);	
+	printf("MEMORY: %x\n", cpu.memory[0x0210]);
+	
 	freeCPU(&cpu);
 
 	return 0;

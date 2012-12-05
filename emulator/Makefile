@@ -5,4 +5,4 @@ all:
 	gcc $(FILES) $(LIBRARIES) -o $(EXECUTABLE)
 
 run: all
-	./$(EXECUTABLE)
+	./$(EXECUTABLE) test.bin
