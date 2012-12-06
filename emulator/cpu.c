@@ -139,7 +139,7 @@ int addressForAbsoluteAddedAddressing(CPU *cpu, unsigned char low_byte, unsigned
 }
 
 int logicalShiftRight(CPU *cpu, int operation_byte) {
-	if(operation_byte & 0x1) { // if bit 0 is on
+	if((operation_byte & 0x1) != 0) { // if bit 0 is on
 		cpu->ps |= 0x1; // turn on bit 0 (carry bit)
 	}
 	
@@ -209,6 +209,8 @@ void step(CPU *cpu) { // main code is here
 	printf("currentOpcode: %x\n", currentOpcode);
 	switch(currentOpcode) {
 		case 0x00: { // BRK impl
+			printf("BREAK. \n");
+			exit(0);
 			break;
 		}
 		case 0x01: { // ORA ind,X
@@ -379,10 +381,11 @@ void step(CPU *cpu) { // main code is here
 			cpu->a &= cpu->memory[cpu->program[cpu->pc++]]; // AND with memory content at (next byte after opcode in zero page)
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
+			
 			break;
 		}
 		case 0x26: { // ROL zpg
-			char zeropage_location = cpu->program[cpu->pc++];
+			unsigned char zeropage_location = cpu->program[cpu->pc++];
 			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 1);
 			
 			updateStatusRegister(cpu, operation_byte, 0);
@@ -520,15 +523,18 @@ void step(CPU *cpu) { // main code is here
 			cpu->a ^= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 6; // this operation takes 6 cycles;
+			
 			break;
 		}
 		case 0x45: { // EOR zpg
 			cpu->a ^= cpu->memory[cpu->program[cpu->pc++]];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
+			
+			break;
 		}
 		case 0x46: { // LSR zpg
-			char zeropage_location = cpu->program[cpu->pc++];
+			unsigned char zeropage_location = cpu->program[cpu->pc++];
 			int operation_byte = logicalShiftRight(cpu, cpu->memory[zeropage_location]);
 			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			
@@ -561,7 +567,12 @@ void step(CPU *cpu) { // main code is here
 		case 0x4C: { // JMP abs
 			unsigned char low_byte = cpu->program[cpu->pc++];
 			unsigned char high_byte = cpu->program[cpu->pc++];
+			
+			printf("jumping to %x %x \n", low_byte, high_byte);
+			
 			int mem_location = joinBytes(low_byte, high_byte);
+			
+			printf("memory: %x\n", cpu->memory[mem_location]);
 			
 			cpu->pc = cpu->memory[mem_location];
 			cpu->cycles += 3;
@@ -593,7 +604,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x50: { // BVC rel
 			int branch_address = cpu->program[cpu->pc++];
-			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) == 0)); // if bit 6 is on
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) != 0)); // if bit 6 is on
 			cpu->cycles += 2;
 			
 			break;
@@ -678,7 +689,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x66: { // ROR zpg
-			char zeropage_location = cpu->program[cpu->pc++];
+			unsigned char zeropage_location = cpu->program[cpu->pc++];
 			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 0);
 			
 			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
@@ -747,7 +758,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x70: { // BVS rel
 			int branch_address = cpu->program[cpu->pc++];
-			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) != 0)); // if bit 6 is off
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) == 0)); // if bit 6 is off
 			cpu->cycles += 2;
 			
 			break;
@@ -1380,6 +1391,11 @@ void step(CPU *cpu) { // main code is here
 			
 			break;
 		}
+		default: {
+			printf("Crash. Trying to run unknown opcode (%x).\n", currentOpcode);
+			exit(-1);
+			break;
+		}
 	}
 }
 
@@ -1410,7 +1426,14 @@ int main(int argc, char *argv[]) {
 	char *program;
 	int program_length = readFileBytes(argv[1], &program);
 	
-	printf("program: %i\n", program_length);
+	printf("Program (%i bytes): \n", program_length);
+	
+	int i;
+	for(i = 0; i < program_length; i++) {
+		printf("%i:%02X ", i, (unsigned char)program[i]);
+	}
+	
+	printf("\n");
 	
 	CPU cpu;
 	initializeCPU(&cpu, program, sizeof(program));
@@ -1431,11 +1454,29 @@ int main(int argc, char *argv[]) {
 	// buf2[1] = 0xEE;
 	// writeMemory(&cpu, buf2, 0x0105, 2);
 	
-	printf("cpu->ps: %i\n", cpu.ps);
-	printf("cpu->sp: %i\n", cpu.sp);
+	// printf("cpu->ps: %i\n", cpu.ps);
+	// printf("cpu->sp: %i\n", cpu.sp);
+	
+	char str[1];
+	// int i;
+	
+	cpu.pc = 708;
 	
 	while(cpu.pc < program_length) {
+		printf("cpu->pc: %i\n", cpu.pc);
+		scanf("%s", str);			
 		step(&cpu);
+		printMemory(&cpu);
+		printf("\n\n\n");
+		printf("cpu->sp: %i\n", cpu.sp);
+		printf("cpu->a: %i\n", cpu.a);
+		printf("cpu->x: %i\n", cpu.x);
+		printf("cpu->y: %i\n", cpu.y);
+		printf("cpu->ps: %i\n\n", cpu.ps);
+		
+		// if(cpu.pc == 0) {
+		// 	break;
+		// }
 	}
 	
 	printMemory(&cpu);
@@ -1449,7 +1490,7 @@ int main(int argc, char *argv[]) {
 	printf("cpu->cycles: %i\n", cpu.cycles);
 	// printf("%s\n", );
 	// printbitssimple(cpu.ps);	
-	printf("MEMORY: %x\n", cpu.memory[0x0210]);
+	printf("MEMORY: %x\n", cpu.memory[0x0040]);
 	
 	freeCPU(&cpu);
 

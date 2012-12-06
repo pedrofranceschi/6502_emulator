@@ -290,12 +290,13 @@ test02:
 	STA $0210
 	JMP theend
 	
-	
 ; expected result: $01DD = 0x6E
 test03:
 	LDA #$4B
 	LSR
 	ASL
+	
+	;OK
 	
 	STA $50
 	ASL $50
@@ -303,44 +304,56 @@ test03:
 	LSR $50
 	LDA $50
 	
-	LDX $50
-	ORA #$C9
-	STA $60
-	ASL $4C,X
-	LSR $4C,X
+	;OK
+	
+	0x14 | 0xC9 221
+	
+	LDX $50 ; x = a
+	ORA #$C9 ; a = 221
+	STA $60 ; ok
+	ASL $4C,X ; ok
+	LSR $4C,X 
 	LSR $4C,X
 	LDA $4C,X
 	
-	LDX $60 ; 589
-	ORA #$41
-	STA $012E
-	LSR $0100,X
-	LSR $0100,X
-	ASL $0100,X
-	LDA $0100,X
+	; OK
 	
-	LDX $012E
-	ORA #$81
-	STA $0100,X
-	LSR $0136
-	LSR $0136
-	ASL $0136
-	LDA $0100,X
+	LDX $60 ; ok
+	ORA #$41 ; ok
+	STA $012E ; ok
+	LSR $0100,X ; ok
+	LSR $0100,X ; ok
+	ASL $0100,X ; ok
+	LDA $0100,X ; ok
+	
+	; OK
+	
+	LDX $012E ; ok
+	ORA #$81 ; ok
+	STA $0100,X ; ok
+	LSR $0136 ; ok
+	LSR $0136 ; ok
+	ASL $0136 ; ok
+	LDA $0100,X ; ok
+	
+	; OK
 	
 	; rol & ror
 	
-	ROL
-	ROL
-	ROR
-	STA $70
+	ROL ; ok
+	ROL ; ok
+	ROR ; ok
+	STA $70 ; ok
 	
-	LDX $70
-	ORA #$03
-	STA $0C,X
-	ROL $C0
+	; OK 631
+	
+	LDX $70 ; ok
+	ORA #$03 ; ok 
+	STA $0C,X ; ok
+	ROL $C0 ; 
 	ROR $C0
 	ROR $C0
-	LDA $0C,X
+	LDA $0C,X ; 645
 	
 	LDX $C0
 	STA $D0
@@ -358,7 +371,7 @@ test03:
 	LDA $0100,X
 	
 	LDX $01B7
-	STA $01DD
+	STA $01DD ;
 	ROL $0100,X
 	ROR $0100,X
 	ROR $0100,X
@@ -374,12 +387,12 @@ test03:
 	
 ; expected result: $40 = 0x42
 test04:
-	LDA #$E8 ;originally:#$7C
-	STA $20
-	LDA #$42 ;originally:#$02
-	STA $21
-	LDA #$00
-	ORA #$03
+	LDA #$E8 ;originally:#$7C ; ok
+	STA $20 ; ok
+	LDA #$42 ;originally:#$02 ; ok
+	STA $21 ; ok
+	LDA #$00 ; ok
+	ORA #$03 ; ok (720)
 	JMP jump1
 	ORA #$FF ; not done
 jump1:
