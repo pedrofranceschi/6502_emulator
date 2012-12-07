@@ -5,7 +5,8 @@ void initializeCPU(CPU *cpu, char *program, int programLength) {
 	cpu->memory = malloc(sizeof(unsigned char) * MEMORY_SIZE);
 	cpu->program = program;
 	cpu->programLength = programLength;
-	cpu->cycles = cpu->pc = cpu->a = cpu->x = cpu->y = cpu->ps = 0; // TODO: move to reset function
+	cpu->cycles = cpu->pc = cpu->a = cpu->x = cpu->y = 0; // TODO: move to reset function
+	cpu->ps = 0x4; // interrupt disabled is on
 	cpu->sp = 0xFF; // stack pointer starts at 0xFF
 }
 

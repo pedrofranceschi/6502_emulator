@@ -395,7 +395,7 @@ test04:
 	ORA #$03 ; ok (720)
 	JMP jump1
 	ORA #$FF ; not done
-jump1:
+jump1: ; NOT WORKING
 	ORA #$30
 	JSR subr
 	ORA #$42
