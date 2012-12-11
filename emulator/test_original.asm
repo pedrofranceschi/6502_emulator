@@ -292,68 +292,56 @@ test02:
 	
 ; expected result: $01DD = 0x6E
 test03:
-	LDA #$4B
-	LSR
-	ASL
+	LDA #$4B ; OK
+	LSR ; OK
+	ASL ; OK
 	
-	;OK
+	STA $50 ; ok
+	ASL $50 ; ok 
+	ASL $50 ; ok 
+	LSR $50 ; ok
+	LDA $50 ; ok
 	
-	STA $50
-	ASL $50
-	ASL $50
-	LSR $50
-	LDA $50
+	; 0x14 | 0xC9 221
 	
-	;OK
-	
-	0x14 | 0xC9 221
-	
-	LDX $50 ; x = a
-	ORA #$C9 ; a = 221
+	LDX $50 ; ok
+	ORA #$C9 ; ok
 	STA $60 ; ok
 	ASL $4C,X ; ok
-	LSR $4C,X 
-	LSR $4C,X
-	LDA $4C,X
+	LSR $4C,X  ; ok
+	LSR $4C,X ; ok
+	LDA $4C,X ; ok
 	
-	; OK
-	
-	LDX $60 ; ok
+	LDX $60 ; 16973 ok
 	ORA #$41 ; ok
-	STA $012E ; ok
-	LSR $0100,X ; ok
-	LSR $0100,X ; ok
+	STA $012E ; ok 16978
+	LSR $0100,X ; ok 16984
+	LSR $0100,X ; ok 16984
 	ASL $0100,X ; ok
 	LDA $0100,X ; ok
 	
-	; OK
-	
-	LDX $012E ; ok
-	ORA #$81 ; ok
-	STA $0100,X ; ok
+	LDX $012E ; ok 16993
+	ORA #$81 ; ok 16995
+	STA $0100,X ; ok 16998
 	LSR $0136 ; ok
 	LSR $0136 ; ok
 	ASL $0136 ; ok
-	LDA $0100,X ; ok
-	
-	; OK
+	LDA $0100,X ; ok 17010
 	
 	; rol & ror
 	
 	ROL ; ok
 	ROL ; ok
 	ROR ; ok
-	STA $70 ; ok
+	STA $70 ; ok 17015
 	
-	; OK 631
-	
-	LDX $70 ; ok
-	ORA #$03 ; ok 
-	STA $0C,X ; ok
+	LDX $70 ; ok 17017
+	ORA #$03 ; ok
+	STA $0C,X ;
 	ROL $C0 ; 
 	ROR $C0
 	ROR $C0
-	LDA $0C,X ; 645
+	LDA $0C,X ;
 	
 	LDX $C0
 	STA $D0

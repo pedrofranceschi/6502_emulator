@@ -229,6 +229,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x06: { // ASL zpg
 			int zeropage_location = cpu->memory[cpu->pc++];
 			int zeropage_byte = cpu->memory[zeropage_location];
+			printf("zeropage_byte: %i\n", zeropage_byte);
 			zeropage_byte <<= 0x1; // left shift
 			
 			updateStatusRegister(cpu, zeropage_byte, 0);
@@ -1439,7 +1440,7 @@ int main(int argc, char *argv[]) {
 	
 	cpu.pc = 0x4000;
 	writeMemory(&cpu, program, cpu.pc, program_length);
-	// cpu.pc += 710;
+	cpu.pc += 559;
 
 	// char *buf = malloc(sizeof(char) * 2);
 	// buf[0] = 0xC0;
@@ -1465,9 +1466,9 @@ int main(int argc, char *argv[]) {
 	
 	for(;;) {
 		printf("cpu->pc: %i\n", cpu.pc);
-		// scanf("%s", str);			
+		scanf("%s", str);			
 		step(&cpu);
-		// printMemory(&cpu);
+		printMemory(&cpu);
 		printf("\n\n\n");
 		printf("cpu->sp: %i\n", cpu.sp);
 		printf("cpu->a: %i\n", cpu.a);
