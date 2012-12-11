@@ -7,8 +7,7 @@
 
 typedef struct {
 	unsigned char *memory;
-	unsigned char *program;
-	int programLength;
+	// int programLength;
 	
 	// REGISTERS
 	int pc; // program counter is two bytes

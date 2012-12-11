@@ -1,10 +1,8 @@
 #include "cpu.h"
 
 // NEVER free program! (TODO memcpy it)
-void initializeCPU(CPU *cpu, char *program, int programLength) {
+void initializeCPU(CPU *cpu) {
 	cpu->memory = malloc(sizeof(unsigned char) * MEMORY_SIZE);
-	cpu->program = program;
-	cpu->programLength = programLength;
 	cpu->cycles = cpu->pc = cpu->a = cpu->x = cpu->y = 0; // TODO: move to reset function
 	cpu->ps = 0x4; // interrupt disabled is on
 	cpu->sp = 0xFF; // stack pointer starts at 0xFF
@@ -206,7 +204,7 @@ void branchToRelativeAddressIf(CPU *cpu, char relative_address, int condition) {
 }
 
 void step(CPU *cpu) { // main code is here
-	unsigned char currentOpcode = cpu->program[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
+	unsigned char currentOpcode = cpu->memory[cpu->pc++]; // read program byte number 'program counter' (starting at 0)
 	printf("currentOpcode: %x\n", currentOpcode);
 	switch(currentOpcode) {
 		case 0x00: { // BRK impl
@@ -215,21 +213,21 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x01: { // ORA ind,X
-			cpu->a |= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a |= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			
 			break;
 		}
 		case 0x05: { // ORA zpg
-			cpu->a |= cpu->memory[cpu->program[cpu->pc++]]; // OR with memory content at (next byte after opcode in zero page)
+			cpu->a |= cpu->memory[cpu->memory[cpu->pc++]]; // OR with memory content at (next byte after opcode in zero page)
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0x06: { // ASL zpg
-			int zeropage_location = cpu->program[cpu->pc++];
+			int zeropage_location = cpu->memory[cpu->pc++];
 			int zeropage_byte = cpu->memory[zeropage_location];
 			zeropage_byte <<= 0x1; // left shift
 			
@@ -246,7 +244,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x09: { // ORA immediate
-			cpu->a |= cpu->program[cpu->pc++]; // just OR with next byte after opcode
+			cpu->a |= cpu->memory[cpu->pc++]; // just OR with next byte after opcode
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 2;
 			break;
@@ -262,8 +260,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x0D: { // ORA abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			
 			cpu->a |= cpu->memory[mem_location];
@@ -273,8 +271,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x0E: { // ASL abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int absolute_address = joinBytes(low_byte, high_byte);
 			int address_byte = cpu->memory[absolute_address];
 			address_byte <<= 0x1; // left shift
@@ -287,28 +285,28 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x10: { // BPL rel
-			int branch_address = cpu->program[cpu->pc++];
+			int branch_address = cpu->memory[cpu->pc++];
 			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x80) == 0)); // if bit 7 is off
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0x11: { // ORA ind,Y
-			cpu->a |= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
+			cpu->a |= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0x15: { // ORA zpg,X			
-			cpu->a |= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a |= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0x16: { // ASL zpg,X
-			int mem_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			int mem_location = addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++]);
 			int mem_value = cpu->memory[mem_location];
 			mem_value <<= 0x1;
 			
@@ -327,8 +325,8 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x19:   // ORA abs,Y
 		case 0x1D: { // ORA abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			
 			cpu->a |= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x19 ? cpu->y : cpu->x), &cpu->cycles)];
 			updateStatusRegister(cpu, cpu->a, 0);
@@ -337,8 +335,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x1E: { // ASL abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int absolute_address = joinBytes(low_byte, high_byte);
 			int mem_final_address = absolute_address + cpu->x;
 			
@@ -353,8 +351,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x20: { // JSR abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int absolute_address = joinBytes(low_byte, high_byte);
 			
 			int program_counter = cpu->pc - 1;
@@ -366,27 +364,27 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x21: { // AND ind,X
-			cpu->a &= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a &= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			
 			break;
 		}
 		case 0x24: { // BIT zpg
-			testByte(cpu, cpu->memory[cpu->program[cpu->pc++]]);
+			testByte(cpu, cpu->memory[cpu->memory[cpu->pc++]]);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0x25: { // AND zpg
-			cpu->a &= cpu->memory[cpu->program[cpu->pc++]]; // AND with memory content at (next byte after opcode in zero page)
+			cpu->a &= cpu->memory[cpu->memory[cpu->pc++]]; // AND with memory content at (next byte after opcode in zero page)
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0x26: { // ROL zpg
-			unsigned char zeropage_location = cpu->program[cpu->pc++];
+			unsigned char zeropage_location = cpu->memory[cpu->pc++];
 			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 1);
 			
 			updateStatusRegister(cpu, operation_byte, 0);
@@ -402,7 +400,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x29: { // AND immediate
-			cpu->a &= cpu->program[cpu->pc++]; // just OR with next byte after opcode
+			cpu->a &= cpu->memory[cpu->pc++]; // just OR with next byte after opcode
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 2;
 			break;
@@ -417,8 +415,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x2C: { // BIT abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			
 			testByte(cpu, cpu->memory[mem_location]);
@@ -427,8 +425,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x2D: { // AND abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			
 			cpu->a &= cpu->memory[mem_location];
@@ -438,8 +436,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x2E: { // ROL abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			int operation_byte = rotateByte(cpu, cpu->memory[mem_location], 1);
 			
@@ -450,28 +448,28 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x30: { // BMI rel
-			int branch_address = cpu->program[cpu->pc++];
+			int branch_address = cpu->memory[cpu->pc++];
 			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x80) != 0)); // if bit 7 is on
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0x31: { // AND ind,Y
-			cpu->a &= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
+			cpu->a &= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0x35: { // AND zpg,X			
-			cpu->a &= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a &= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0x36: { // ROL zpg,X
-			int zeropage_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			int zeropage_location = addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++]);
 			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 1);
 			
 			updateStatusRegister(cpu, operation_byte, 0);
@@ -488,8 +486,8 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x39:   // AND abs,Y
 		case 0x3D: { // AND abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			
 			cpu->a &= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x39 ? cpu->y : cpu->x), &cpu->cycles)];
 			updateStatusRegister(cpu, cpu->a, 0);
@@ -498,8 +496,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x3E: { // ROL abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int absolute_address = joinBytes(low_byte, high_byte);
 			int mem_final_address = absolute_address + cpu->x;
 			int operation_byte = rotateByte(cpu, cpu->memory[mem_final_address], 1);
@@ -521,21 +519,21 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x41: { // EOR ind,X
-			cpu->a ^= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a ^= cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 6; // this operation takes 6 cycles;
 			
 			break;
 		}
 		case 0x45: { // EOR zpg
-			cpu->a ^= cpu->memory[cpu->program[cpu->pc++]];
+			cpu->a ^= cpu->memory[cpu->memory[cpu->pc++]];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0x46: { // LSR zpg
-			unsigned char zeropage_location = cpu->program[cpu->pc++];
+			unsigned char zeropage_location = cpu->memory[cpu->pc++];
 			int operation_byte = logicalShiftRight(cpu, cpu->memory[zeropage_location]);
 			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			
@@ -551,7 +549,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x49: { // EOR immediate
-			cpu->a ^= cpu->program[cpu->pc++]; // just OR with next byte after opcode
+			cpu->a ^= cpu->memory[cpu->pc++]; // just OR with next byte after opcode
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 2;
 			break;
@@ -566,23 +564,23 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x4C: { // JMP abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			
 			printf("jumping to %x %x \n", low_byte, high_byte);
 			
 			int mem_location = joinBytes(low_byte, high_byte);
 			
-			printf("memory: %x\n", cpu->memory[mem_location]);
+			printf("memory: %x\n", mem_location);
 			
-			cpu->pc = cpu->memory[mem_location];
+			cpu->pc = mem_location;
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0x4D: { // EOR abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			
 			cpu->a ^= cpu->memory[mem_location];
@@ -592,8 +590,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x4E: { // LSR abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			int operation_byte = logicalShiftRight(cpu, cpu->memory[mem_location]);
 			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
@@ -604,28 +602,28 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x50: { // BVC rel
-			int branch_address = cpu->program[cpu->pc++];
+			int branch_address = cpu->memory[cpu->pc++];
 			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) != 0)); // if bit 6 is on
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0x51: { // EOR ind,Y
-			cpu->a ^= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
+			cpu->a ^= cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0x55: { // EOR zpg,X
-			cpu->a ^= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a ^= cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0x56: { // LSR zpg,X
-			int mem_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			int mem_location = addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++]);
 			int operation_byte = logicalShiftRight(cpu, cpu->memory[mem_location]);
 			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			
@@ -642,8 +640,8 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x59:   // EOR abs,Y
 		case 0x5D: { // EOR abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			
 			cpu->a ^= cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x59 ? cpu->y : cpu->x), &cpu->cycles)];
 			updateStatusRegister(cpu, cpu->a, 0);
@@ -652,8 +650,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x5E: { // LSR abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			
 			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, NULL);
 			int operation_byte = logicalShiftRight(cpu, cpu->memory[mem_location]);
@@ -674,7 +672,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x61: { // ADC ind,X
-			int operation_byte = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			int operation_byte = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])];
 			addWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 6;
@@ -682,7 +680,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x65: { // ADC zpg
-			int operation_byte = cpu->memory[cpu->program[cpu->pc++]];
+			int operation_byte = cpu->memory[cpu->memory[cpu->pc++]];
 			addWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 3;
@@ -690,7 +688,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x66: { // ROR zpg
-			unsigned char zeropage_location = cpu->program[cpu->pc++];
+			unsigned char zeropage_location = cpu->memory[cpu->pc++];
 			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 0);
 			
 			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
@@ -706,7 +704,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x69: { // ADC immediate
-			int operation_byte = cpu->program[cpu->pc++];
+			int operation_byte = cpu->memory[cpu->pc++];
 			addWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 2;
@@ -723,19 +721,19 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x6C: { // JMP ind
-			int indirect_mem_location = joinBytes(cpu->program[cpu->pc++], cpu->program[cpu->pc++]);
+			int indirect_mem_location = joinBytes(cpu->memory[cpu->pc++], cpu->memory[cpu->pc++]);
 			unsigned char low_byte = cpu->memory[indirect_mem_location];
 			unsigned char high_byte = cpu->memory[indirect_mem_location + 1];
 			int real_memory_location = joinBytes(low_byte, high_byte);
 			
-			cpu->pc = cpu->memory[real_memory_location];
+			cpu->pc = real_memory_location;
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0x6D: { // ADC abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);			
 			int operation_byte = cpu->memory[mem_location];
 			
@@ -746,8 +744,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x6E: { // ROR abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			int operation_byte = rotateByte(cpu, cpu->memory[mem_location], 0);
 			
@@ -758,14 +756,14 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x70: { // BVS rel
-			int branch_address = cpu->program[cpu->pc++];
+			int branch_address = cpu->memory[cpu->pc++];
 			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) == 0)); // if bit 6 is off
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0x71: { // ADC ind,Y
-			int operation_byte = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
+			int operation_byte = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))];
 			addWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 5;
@@ -773,7 +771,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x75: { // ADC zpg,X
-			int operation_byte = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			int operation_byte = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
 			addWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 4;
@@ -781,7 +779,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x76: { // ROR zpg,X
-			int zeropage_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			int zeropage_location = addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++]);
 			int operation_byte = rotateByte(cpu, cpu->memory[zeropage_location], 0);
 			
 			updateStatusRegister(cpu, operation_byte, 0x1); // 0x1 = ignore carry bit when settings processor status flags
@@ -798,8 +796,8 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x79:   // ADC abs,Y
 		case 0x7D: { // ADC abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int operation_byte = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x79 ? cpu->y : cpu->x), &cpu->cycles)];
 			
 			addWithCarry(cpu, operation_byte);
@@ -809,8 +807,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x7E: { // ROR abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int absolute_address = joinBytes(low_byte, high_byte);
 			int mem_final_address = absolute_address + cpu->x;
 			int operation_byte = rotateByte(cpu, cpu->memory[mem_final_address], 0);
@@ -822,25 +820,25 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x81: { // STA ind,X
-			cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])] = cpu->a;
+			cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])] = cpu->a;
 			cpu->cycles += 6;
 			
 			break;
 		}
 		case 0x84: { // STY zpg
-			cpu->memory[cpu->program[cpu->pc++]] = cpu->y;
+			cpu->memory[cpu->memory[cpu->pc++]] = cpu->y;
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0x85: { // STA zpg
-			cpu->memory[cpu->program[cpu->pc++]] = cpu->a;
+			cpu->memory[cpu->memory[cpu->pc++]] = cpu->a;
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0x86: { // STX zpg
-			cpu->memory[cpu->program[cpu->pc++]] = cpu->x;
+			cpu->memory[cpu->memory[cpu->pc++]] = cpu->x;
 			cpu->cycles += 3;
 			
 			break;
@@ -860,8 +858,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x8C: { // STY abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);			
 			cpu->memory[mem_location] = cpu->y;
 			cpu->cycles += 4;
@@ -869,8 +867,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x8D: { // STA abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);			
 			cpu->memory[mem_location] = cpu->a;
 			cpu->cycles += 4;
@@ -878,8 +876,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x8E: { // STX abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);			
 			cpu->memory[mem_location] = cpu->x;
 			cpu->cycles += 4;
@@ -887,32 +885,32 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x90: { // BCC rel
-			int branch_address = cpu->program[cpu->pc++];
+			int branch_address = cpu->memory[cpu->pc++];
 			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x1) == 0)); // if bit 0 is off
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0x91: { // STA ind,Y
-			cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], NULL)] = cpu->a;
+			cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], NULL)] = cpu->a;
 			cpu->cycles += 6;
 			
 			break;
 		}
 		case 0x94: { // STY zpg,X
-			cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])] = cpu->y;
+			cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])] = cpu->y;
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0x95: { // STA zpg,X
-			cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])] = cpu->a;
+			cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])] = cpu->a;
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0x96: { // STX zpg,Y
-			cpu->memory[addressForZeroPageYAddressing(cpu, cpu->program[cpu->pc++])] = cpu->x;
+			cpu->memory[addressForZeroPageYAddressing(cpu, cpu->memory[cpu->pc++])] = cpu->x;
 			cpu->cycles += 4;
 			
 			break;
@@ -926,8 +924,8 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x99:   // STA abs,Y
 		case 0x9D: { // STA abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			
 			cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x99 ? cpu->y : cpu->x), NULL)] = cpu->a;
 			cpu->cycles += 5;
@@ -942,42 +940,42 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xA0: { // LDY immediate
-			cpu->y = cpu->program[cpu->pc++];
+			cpu->y = cpu->memory[cpu->pc++];
 			updateStatusRegister(cpu, cpu->y, 0);
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0xA1: { // LDA ind,X
-			cpu->a = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 6;
 			
 			break;
 		}
 		case 0xA2: { // LDX immediate
-			cpu->x = cpu->program[cpu->pc++];
+			cpu->x = cpu->memory[cpu->pc++];
 			updateStatusRegister(cpu, cpu->x, 0);
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0xA4: { // LDY zpg
-			cpu->y = cpu->memory[cpu->program[cpu->pc++]];
+			cpu->y = cpu->memory[cpu->memory[cpu->pc++]];
 			updateStatusRegister(cpu, cpu->y, 0);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0xA5: { // LDA zpg
-			cpu->a = cpu->memory[cpu->program[cpu->pc++]];
+			cpu->a = cpu->memory[cpu->memory[cpu->pc++]];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0xA6: { // LDX zpg
-			cpu->x = cpu->memory[cpu->program[cpu->pc++]];
+			cpu->x = cpu->memory[cpu->memory[cpu->pc++]];
 			updateStatusRegister(cpu, cpu->x, 0);
 			cpu->cycles += 3;
 			
@@ -991,7 +989,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xA9: { // LDA immediate
-			cpu->a = cpu->program[cpu->pc++];
+			cpu->a = cpu->memory[cpu->pc++];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 2;
 			
@@ -1005,8 +1003,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xAC: { // LDY abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->y = cpu->memory[mem_location];
 			updateStatusRegister(cpu, cpu->y, 0);
@@ -1015,8 +1013,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xAD: { // LDA abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->a = cpu->memory[mem_location];
 			updateStatusRegister(cpu, cpu->a, 0);
@@ -1025,8 +1023,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xAE: { // LDX abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->x = cpu->memory[mem_location];
 			updateStatusRegister(cpu, cpu->x, 0);
@@ -1035,35 +1033,35 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xB0: { // BCS rel
-			int branch_address = cpu->program[cpu->pc++];
+			int branch_address = cpu->memory[cpu->pc++];
 			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x1) != 0)); // if bit 0 is on
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0xB1: { // LDA ind,Y
-			cpu->a = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
+			cpu->a = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0xB4: { // LDY zpg,X
-			cpu->y = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->y = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->y, 0);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0xB5: { // LDA zpg,X
-			cpu->a = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->a = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0xB6: { // LDX zpg,Y
-			cpu->x = cpu->memory[addressForZeroPageYAddressing(cpu, cpu->program[cpu->pc++])];
+			cpu->x = cpu->memory[addressForZeroPageYAddressing(cpu, cpu->memory[cpu->pc++])];
 			updateStatusRegister(cpu, cpu->x, 0);
 			cpu->cycles += 4;
 			
@@ -1076,8 +1074,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xB9: { // LDA abs,Y
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			cpu->a = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->y, &(cpu->cycles))];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
@@ -1092,8 +1090,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xBC: { // LDY abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			cpu->y = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, &(cpu->cycles))];
 			updateStatusRegister(cpu, cpu->y, 0);
 			cpu->cycles += 4;
@@ -1101,8 +1099,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xBD: { // LDA abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			cpu->a = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, &(cpu->cycles))];
 			updateStatusRegister(cpu, cpu->a, 0);
 			cpu->cycles += 4;
@@ -1110,8 +1108,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xBE: { // LDX abs,Y
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			cpu->x = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->y, &(cpu->cycles))];
 			updateStatusRegister(cpu, cpu->x, 0);
 			cpu->cycles += 4;
@@ -1119,31 +1117,31 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xC0: { // CPY immediate
-			compareBytes(cpu, cpu->y, cpu->program[cpu->pc++]);
+			compareBytes(cpu, cpu->y, cpu->memory[cpu->pc++]);
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0xC1: { // CMP ind,X
-			compareBytes(cpu, cpu->a, cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])]);
+			compareBytes(cpu, cpu->a, cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])]);
 			cpu->cycles += 6;
 			
 			break;
 		}
 		case 0xC4: { // CPY zpg
-			compareBytes(cpu, cpu->y, cpu->memory[cpu->program[cpu->pc++]]);
+			compareBytes(cpu, cpu->y, cpu->memory[cpu->memory[cpu->pc++]]);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0xC5: { // CMP zpg
-			compareBytes(cpu, cpu->a, cpu->memory[cpu->program[cpu->pc++]]);
+			compareBytes(cpu, cpu->a, cpu->memory[cpu->memory[cpu->pc++]]);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0xC6: { // DEC zpg
-			int mem_location = cpu->program[cpu->pc++];
+			int mem_location = cpu->memory[cpu->pc++];
 			cpu->memory[mem_location] -= 0x1;
 			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
 			cpu->cycles += 5;
@@ -1158,7 +1156,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xC9: { // CMP immediate
-			compareBytes(cpu, cpu->a, cpu->program[cpu->pc++]);
+			compareBytes(cpu, cpu->a, cpu->memory[cpu->pc++]);
 			cpu->cycles += 2;
 			
 			break;
@@ -1171,8 +1169,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xCC: { // CPY abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			compareBytes(cpu, cpu->y, cpu->memory[mem_location]);
 			cpu->cycles += 4;
@@ -1180,8 +1178,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xCD: { // CMP abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			compareBytes(cpu, cpu->a, cpu->memory[mem_location]);
 			cpu->cycles += 4;
@@ -1189,8 +1187,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xCE: { // DEC abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->memory[mem_location] -= 0x1;
 			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
@@ -1199,26 +1197,26 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xD0: { // BNE rel
-			int branch_address = cpu->program[cpu->pc++];
+			int branch_address = cpu->memory[cpu->pc++];
 			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x2) == 0)); // if bit 2 is off
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0xD1: { // CMP ind,Y
-			compareBytes(cpu, cpu->a, cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))]);
+			compareBytes(cpu, cpu->a, cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))]);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0xD5: { // CMP zpg,X
-			compareBytes(cpu, cpu->a, cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])]);
+			compareBytes(cpu, cpu->a, cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])]);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0xD6: { // DEC zpg,X
-			int mem_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			int mem_location = addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++]);
 			cpu->memory[mem_location] -= 0x1;
 			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
 			cpu->cycles += 6;
@@ -1231,16 +1229,16 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0xD9:   // CMP abs,Y			
 		case 0xDD: { // CMP abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			compareBytes(cpu, cpu->a, cpu->memory[(currentOpcode == 0xD9 ? addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->y, &(cpu->cycles)) : addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, &(cpu->cycles)))]);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0xDE: { // DEC abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, NULL);
 			cpu->memory[mem_location] -= 0x1;
 			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
@@ -1249,13 +1247,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xE0: { // CPX immediate
-			compareBytes(cpu, cpu->x, cpu->program[cpu->pc++]);
+			compareBytes(cpu, cpu->x, cpu->memory[cpu->pc++]);
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0xE1: { // SBC ind,X
-			int operation_byte = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->program[cpu->pc++])];
+			int operation_byte = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])];
 			subtractWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 6;
@@ -1263,13 +1261,13 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xE4: { // CPX zpg
-			compareBytes(cpu, cpu->x, cpu->memory[cpu->program[cpu->pc++]]);
+			compareBytes(cpu, cpu->x, cpu->memory[cpu->memory[cpu->pc++]]);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0xE5: { // SBC zpg
-			int operation_byte = cpu->memory[cpu->program[cpu->pc++]];
+			int operation_byte = cpu->memory[cpu->memory[cpu->pc++]];
 			subtractWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 3;
@@ -1277,7 +1275,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xE6: { // INC zpg
-			int mem_location = cpu->program[cpu->pc++];
+			int mem_location = cpu->memory[cpu->pc++];
 			cpu->memory[mem_location] += 0x1;
 			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
 			cpu->cycles += 5;
@@ -1292,7 +1290,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xE9: { // SBC immediate
-			int operation_byte = cpu->program[cpu->pc++];
+			int operation_byte = cpu->memory[cpu->pc++];
 			subtractWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 2;
@@ -1305,8 +1303,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xEC: { // CPX abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			compareBytes(cpu, cpu->x, cpu->memory[mem_location]);
 			cpu->cycles += 4;
@@ -1314,8 +1312,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xED: { // SBC abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);			
 			int operation_byte = cpu->memory[mem_location];
 			
@@ -1326,8 +1324,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xEE: { // INC abs
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->memory[mem_location] += 0x1;
 			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
@@ -1336,14 +1334,14 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xF0: { // BEQ rel
-			int branch_address = cpu->program[cpu->pc++];
+			int branch_address = cpu->memory[cpu->pc++];
 			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x2) != 0)); // if bit 1 is on
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0xF1: { // SBC ind,Y
-			int operation_byte = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->program[cpu->pc++], &(cpu->cycles))];
+			int operation_byte = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))];
 			subtractWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 5;
@@ -1351,7 +1349,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xF5: { // SBC zpg,X
-			int operation_byte = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++])];
+			int operation_byte = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
 			subtractWithCarry(cpu, operation_byte);
 			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 4;
@@ -1359,7 +1357,7 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xF6: { // INC zpg,X
-			int mem_location = addressForZeroPageXAddressing(cpu, cpu->program[cpu->pc++]);
+			int mem_location = addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++]);
 			cpu->memory[mem_location] += 0x1;
 			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
 			cpu->cycles += 6;
@@ -1372,8 +1370,8 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0xF9:   // SBC abs,Y
 		case 0xFD: { // SBC abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int operation_byte = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0xF9 ? cpu->y : cpu->x), &cpu->cycles)];
 			
 			subtractWithCarry(cpu, operation_byte);
@@ -1383,8 +1381,8 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xFE: { // INC abs,X
-			unsigned char low_byte = cpu->program[cpu->pc++];
-			unsigned char high_byte = cpu->program[cpu->pc++];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, NULL);
 			cpu->memory[mem_location] += 0x1;
 			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
@@ -1437,7 +1435,11 @@ int main(int argc, char *argv[]) {
 	printf("\n");
 	
 	CPU cpu;
-	initializeCPU(&cpu, program, sizeof(program));
+	initializeCPU(&cpu);
+	
+	cpu.pc = 0x4000;
+	writeMemory(&cpu, program, cpu.pc, program_length);
+	// cpu.pc += 710;
 
 	// char *buf = malloc(sizeof(char) * 2);
 	// buf[0] = 0xC0;
@@ -1461,13 +1463,11 @@ int main(int argc, char *argv[]) {
 	char str[1];
 	// int i;
 	
-	cpu.pc = 708;
-	
-	while(cpu.pc < program_length) {
+	for(;;) {
 		printf("cpu->pc: %i\n", cpu.pc);
-		scanf("%s", str);			
+		// scanf("%s", str);			
 		step(&cpu);
-		printMemory(&cpu);
+		// printMemory(&cpu);
 		printf("\n\n\n");
 		printf("cpu->sp: %i\n", cpu.sp);
 		printf("cpu->a: %i\n", cpu.a);
