@@ -178,7 +178,7 @@ void subtractWithCarry(CPU *cpu, int operation_byte) {
 void compareBytes(CPU *cpu, unsigned char byte1, unsigned char byte2) {
 	cpu->ps = ((byte1 >= byte2) ? cpu->ps | 0x01 : cpu->ps & 0xFE); // updates carry bit (0) on processor status flag
 	cpu->ps = ((byte1 == byte2) ? cpu->ps | 0x02 : cpu->ps & 0xFD); // updates zero bit (0) on processor status flag
-	updateStatusRegister(cpu, byte1 - byte2, 0x3); // 0x3 = ignores zero and carry bits
+	updateStatusRegister(cpu, byte1 - byte2, 0x7F); // 0x3 = ignores zero and carry bits
 }
 
 void testByte(CPU *cpu, char byte) {
@@ -846,7 +846,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x88: { // DEY impl
 			cpu->y -= 0x1;
-			updateStatusRegister(cpu, cpu->y, 0);
+			updateStatusRegister(cpu, cpu->y, 0x7D);
 			cpu->cycles += 2;
 			
 			break;
@@ -1144,7 +1144,7 @@ void step(CPU *cpu) { // main code is here
 		case 0xC6: { // DEC zpg
 			int mem_location = cpu->memory[cpu->pc++];
 			cpu->memory[mem_location] -= 0x1;
-			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0x7D);
 			cpu->cycles += 5;
 			
 			break;
@@ -1164,7 +1164,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0xCA: { // DEX impl
 			cpu->x -= 0x1;
-			updateStatusRegister(cpu, cpu->x, 0);
+			updateStatusRegister(cpu, cpu->x, 0x7D);
 			cpu->cycles += 2;
 			
 			break;
@@ -1192,7 +1192,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->memory[mem_location] -= 0x1;
-			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0x7D);
 			cpu->cycles += 3;
 			
 			break;
@@ -1219,7 +1219,7 @@ void step(CPU *cpu) { // main code is here
 		case 0xD6: { // DEC zpg,X
 			int mem_location = addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++]);
 			cpu->memory[mem_location] -= 0x1;
-			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0x7D);
 			cpu->cycles += 6;
 			
 			break;
@@ -1242,7 +1242,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, NULL);
 			cpu->memory[mem_location] -= 0x1;
-			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0x7D);
 			cpu->cycles += 7;
 			
 			break;
@@ -1278,14 +1278,14 @@ void step(CPU *cpu) { // main code is here
 		case 0xE6: { // INC zpg
 			int mem_location = cpu->memory[cpu->pc++];
 			cpu->memory[mem_location] += 0x1;
-			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0x7D);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0xE8: { // INX impl
 			cpu->x += 0x1;
-			updateStatusRegister(cpu, cpu->x, 0);
+			updateStatusRegister(cpu, cpu->x, 0x7D);
 			cpu->cycles += 2;
 			
 			break;
@@ -1329,7 +1329,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->memory[mem_location] += 0x1;
-			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0x7D);
 			cpu->cycles += 6;
 			
 			break;
@@ -1360,7 +1360,7 @@ void step(CPU *cpu) { // main code is here
 		case 0xF6: { // INC zpg,X
 			int mem_location = addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++]);
 			cpu->memory[mem_location] += 0x1;
-			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0x7D);
 			cpu->cycles += 6;
 			
 			break;
@@ -1386,7 +1386,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, NULL);
 			cpu->memory[mem_location] += 0x1;
-			updateStatusRegister(cpu, cpu->memory[mem_location], 0);
+			updateStatusRegister(cpu, cpu->memory[mem_location], 0x7D);
 			cpu->cycles += 7;
 			
 			break;
