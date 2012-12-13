@@ -25,7 +25,7 @@ void readMemory(CPU *cpu, char *buffer, int start, int offset) {
 void printMemory(CPU *cpu) {
 	int i, j;
 
-	for(i = 0; i < MEMORY_PAGES; i++) {
+	for(i = 0; i < 4; i++) {
 		printf("=== Page %i\n", i);
 		for(j = 0;  j < PAGE_SIZE; j++) {
 			printf("%x ", cpu->memory[(i * PAGE_SIZE) + j]);
@@ -123,7 +123,7 @@ int rotateByte(CPU *cpu, int byte, int isLeftShift) {
 	return byte;
 }
 
-int addressForAbsoluteAddedAddressing(CPU *cpu, unsigned char low_byte, unsigned char high_byte, char adding, int *cycles) {
+int addressForAbsoluteAddedAddressing(CPU *cpu, unsigned char low_byte, unsigned char high_byte, unsigned char adding, int *cycles) {
 	int absolute_address = joinBytes(low_byte, high_byte);
 	int mem_final_address = absolute_address + adding;
 	
@@ -1440,7 +1440,7 @@ int main(int argc, char *argv[]) {
 	
 	cpu.pc = 0x4000;
 	writeMemory(&cpu, program, cpu.pc, program_length);
-	cpu.pc += 559;
+	// cpu.pc += 559;
 
 	// char *buf = malloc(sizeof(char) * 2);
 	// buf[0] = 0xC0;
