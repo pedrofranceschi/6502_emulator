@@ -109,9 +109,7 @@ int rotateByte(CPU *cpu, int byte, int isLeftShift) {
 	} else {
 		int pre_ps = cpu->ps;
 		
-		if(byte & 0x1 != 0) {
-			cpu->ps |= 0x1;
-		}
+		cpu->ps = ((byte & 0x1) != 0 ? cpu->ps | 0x1 : cpu->ps & 0xFE);
 		
 		byte >>= 1;
 		
@@ -724,10 +722,16 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0x6C: { // JMP ind
-			int indirect_mem_location = joinBytes(cpu->memory[cpu->pc++], cpu->memory[cpu->pc++]);
-			unsigned char low_byte = cpu->memory[indirect_mem_location];
-			unsigned char high_byte = cpu->memory[indirect_mem_location + 1];
+			unsigned char low_byte = cpu->memory[cpu->pc++];
+			unsigned char high_byte = cpu->memory[cpu->pc++];
+			int indirect_mem_location = joinBytes(low_byte, high_byte);
+			printf("indirect_mem_location: %i\n", indirect_mem_location);
+			low_byte = cpu->memory[indirect_mem_location];
+			high_byte = cpu->memory[indirect_mem_location + 1];
+			printf("low_byte: %x\n", low_byte);
+			printf("high_byte: %x\n", high_byte);
 			int real_memory_location = joinBytes(low_byte, high_byte);
+			printf("real_memory_location: %i\n", real_memory_location);
 			
 			cpu->pc = real_memory_location;
 			cpu->cycles += 5;
