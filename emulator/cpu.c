@@ -229,10 +229,9 @@ void step(CPU *cpu) { // main code is here
 		case 0x06: { // ASL zpg
 			int zeropage_location = cpu->memory[cpu->pc++];
 			int zeropage_byte = cpu->memory[zeropage_location];
-			printf("zeropage_byte: %i\n", zeropage_byte);
 			zeropage_byte <<= 0x1; // left shift
 			
-			updateStatusRegister(cpu, zeropage_byte, 0);
+			updateStatusRegister(cpu, zeropage_byte, 0x7C);
 			cpu->memory[zeropage_location] = zeropage_byte & 0xFF; // 0xFF removes anything set in a bit > 8;
 			cpu->cycles += 5;
 			
@@ -254,7 +253,7 @@ void step(CPU *cpu) { // main code is here
 			int accumulator_byte = cpu->a;
 			accumulator_byte <<= 0x1; // left shift
 			
-			updateStatusRegister(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0x7C);
 			cpu->a = accumulator_byte & 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->cycles += 2;
 			
@@ -278,7 +277,7 @@ void step(CPU *cpu) { // main code is here
 			int address_byte = cpu->memory[absolute_address];
 			address_byte <<= 0x1; // left shift
 			
-			updateStatusRegister(cpu, address_byte, 0);
+			updateStatusRegister(cpu, address_byte, 0x7C);
 			address_byte &= 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->memory[absolute_address] = address_byte;
 			cpu->cycles += 6;
@@ -311,7 +310,7 @@ void step(CPU *cpu) { // main code is here
 			int mem_value = cpu->memory[mem_location];
 			mem_value <<= 0x1;
 			
-			updateStatusRegister(cpu, mem_value, 0);
+			updateStatusRegister(cpu, mem_value, 0x7C);
 			mem_value &= 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->memory[mem_location] = mem_value;
 			cpu->cycles += 6;
@@ -344,7 +343,7 @@ void step(CPU *cpu) { // main code is here
 			int mem_value = cpu->memory[mem_final_address];
 			mem_value <<= 0x1;
 			
-			updateStatusRegister(cpu, mem_value, 0);
+			updateStatusRegister(cpu, mem_value, 0x7C);
 			mem_value &= 0xFF; // 0xFF removes anything set in a bit > 8
 			cpu->memory[mem_final_address] = mem_value;
 			cpu->cycles += 6;
@@ -675,7 +674,8 @@ void step(CPU *cpu) { // main code is here
 		case 0x61: { // ADC ind,X
 			int operation_byte = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])];
 			addWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			
+			updateStatusRegister(cpu, cpu->a, 0x3D); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 6;
 			
 			break;
@@ -683,7 +683,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x65: { // ADC zpg
 			int operation_byte = cpu->memory[cpu->memory[cpu->pc++]];
 			addWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3d); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 3;
 			
 			break;
@@ -707,7 +707,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x69: { // ADC immediate
 			int operation_byte = cpu->memory[cpu->pc++];
 			addWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D); // 0x1 = ignore carry bit when settings processor status flags
 			cpu->cycles += 2;
 			
 			break;
@@ -739,7 +739,7 @@ void step(CPU *cpu) { // main code is here
 			int operation_byte = cpu->memory[mem_location];
 			
 			addWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 4;
 			
 			break;
@@ -766,7 +766,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x71: { // ADC ind,Y
 			int operation_byte = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))];
 			addWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 5;
 			
 			break;
@@ -774,7 +774,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x75: { // ADC zpg,X
 			int operation_byte = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
 			addWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 4;
 			
 			break;
@@ -802,7 +802,7 @@ void step(CPU *cpu) { // main code is here
 			int operation_byte = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0x79 ? cpu->y : cpu->x), &cpu->cycles)];
 			
 			addWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1256,7 +1256,7 @@ void step(CPU *cpu) { // main code is here
 		case 0xE1: { // SBC ind,X
 			int operation_byte = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])];
 			subtractWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 6;
 			
 			break;
@@ -1270,7 +1270,7 @@ void step(CPU *cpu) { // main code is here
 		case 0xE5: { // SBC zpg
 			int operation_byte = cpu->memory[cpu->memory[cpu->pc++]];
 			subtractWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 3;
 			
 			break;
@@ -1293,7 +1293,7 @@ void step(CPU *cpu) { // main code is here
 		case 0xE9: { // SBC immediate
 			int operation_byte = cpu->memory[cpu->pc++];
 			subtractWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 2;
 			
 			break;
@@ -1319,7 +1319,7 @@ void step(CPU *cpu) { // main code is here
 			int operation_byte = cpu->memory[mem_location];
 			
 			subtractWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1344,7 +1344,7 @@ void step(CPU *cpu) { // main code is here
 		case 0xF1: { // SBC ind,Y
 			int operation_byte = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))];
 			subtractWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 5;
 			
 			break;
@@ -1352,7 +1352,7 @@ void step(CPU *cpu) { // main code is here
 		case 0xF5: { // SBC zpg,X
 			int operation_byte = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
 			subtractWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1376,7 +1376,7 @@ void step(CPU *cpu) { // main code is here
 			int operation_byte = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, (currentOpcode == 0xF9 ? cpu->y : cpu->x), &cpu->cycles)];
 			
 			subtractWithCarry(cpu, operation_byte);
-			updateStatusRegister(cpu, cpu->a, 0x1); // 0x1 = ignore carry bit when settings processor status flags
+			updateStatusRegister(cpu, cpu->a, 0x3D);
 			cpu->cycles += 4;
 			
 			break;
