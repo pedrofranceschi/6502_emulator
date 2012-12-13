@@ -942,42 +942,42 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0xA0: { // LDY immediate
 			cpu->y = cpu->memory[cpu->pc++];
-			updateStatusRegister(cpu, cpu->y, 0);
+			updateStatusRegister(cpu, cpu->y, 0x7D);
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0xA1: { // LDA ind,X
 			cpu->a = cpu->memory[addressForIndexedIndirectAddressing(cpu, cpu->memory[cpu->pc++])];
-			updateStatusRegister(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0x7D);
 			cpu->cycles += 6;
 			
 			break;
 		}
 		case 0xA2: { // LDX immediate
 			cpu->x = cpu->memory[cpu->pc++];
-			updateStatusRegister(cpu, cpu->x, 0);
+			updateStatusRegister(cpu, cpu->x, 0x7D);
 			cpu->cycles += 2;
 			
 			break;
 		}
 		case 0xA4: { // LDY zpg
 			cpu->y = cpu->memory[cpu->memory[cpu->pc++]];
-			updateStatusRegister(cpu, cpu->y, 0);
+			updateStatusRegister(cpu, cpu->y, 0x7D);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0xA5: { // LDA zpg
 			cpu->a = cpu->memory[cpu->memory[cpu->pc++]];
-			updateStatusRegister(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0x7D);
 			cpu->cycles += 3;
 			
 			break;
 		}
 		case 0xA6: { // LDX zpg
-			cpu->x = cpu->memory[cpu->memory[cpu->pc++]];
-			updateStatusRegister(cpu, cpu->x, 0);
+			cpu->x = cpu->memory[cpu->memory[cpu->pc++]];	
+			updateStatusRegister(cpu, cpu->x, 0x7D);
 			cpu->cycles += 3;
 			
 			break;
@@ -991,7 +991,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0xA9: { // LDA immediate
 			cpu->a = cpu->memory[cpu->pc++];
-			updateStatusRegister(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0x7D);
 			cpu->cycles += 2;
 			
 			break;
@@ -1008,7 +1008,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->y = cpu->memory[mem_location];
-			updateStatusRegister(cpu, cpu->y, 0);
+			updateStatusRegister(cpu, cpu->y, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1018,7 +1018,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->a = cpu->memory[mem_location];
-			updateStatusRegister(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1028,7 +1028,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int mem_location = joinBytes(low_byte, high_byte);
 			cpu->x = cpu->memory[mem_location];
-			updateStatusRegister(cpu, cpu->x, 0);
+			updateStatusRegister(cpu, cpu->x, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1042,28 +1042,28 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0xB1: { // LDA ind,Y
 			cpu->a = cpu->memory[addressForIndirectIndexedAddressing(cpu, cpu->memory[cpu->pc++], &(cpu->cycles))];
-			updateStatusRegister(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0x7D);
 			cpu->cycles += 5;
 			
 			break;
 		}
 		case 0xB4: { // LDY zpg,X
 			cpu->y = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
-			updateStatusRegister(cpu, cpu->y, 0);
+			updateStatusRegister(cpu, cpu->y, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0xB5: { // LDA zpg,X
 			cpu->a = cpu->memory[addressForZeroPageXAddressing(cpu, cpu->memory[cpu->pc++])];
-			updateStatusRegister(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
 		}
 		case 0xB6: { // LDX zpg,Y
 			cpu->x = cpu->memory[addressForZeroPageYAddressing(cpu, cpu->memory[cpu->pc++])];
-			updateStatusRegister(cpu, cpu->x, 0);
+			updateStatusRegister(cpu, cpu->x, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1078,7 +1078,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char low_byte = cpu->memory[cpu->pc++];
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			cpu->a = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->y, &(cpu->cycles))];
-			updateStatusRegister(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1094,7 +1094,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char low_byte = cpu->memory[cpu->pc++];
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			cpu->y = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, &(cpu->cycles))];
-			updateStatusRegister(cpu, cpu->y, 0);
+			updateStatusRegister(cpu, cpu->y, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1103,7 +1103,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char low_byte = cpu->memory[cpu->pc++];
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			cpu->a = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->x, &(cpu->cycles))];
-			updateStatusRegister(cpu, cpu->a, 0);
+			updateStatusRegister(cpu, cpu->a, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1112,7 +1112,7 @@ void step(CPU *cpu) { // main code is here
 			unsigned char low_byte = cpu->memory[cpu->pc++];
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			cpu->x = cpu->memory[addressForAbsoluteAddedAddressing(cpu, low_byte, high_byte, cpu->y, &(cpu->cycles))];
-			updateStatusRegister(cpu, cpu->x, 0);
+			updateStatusRegister(cpu, cpu->x, 0x7D);
 			cpu->cycles += 4;
 			
 			break;
@@ -1466,7 +1466,7 @@ int main(int argc, char *argv[]) {
 	
 	for(;;) {
 		printf("cpu->pc: %i\n", cpu.pc);
-		scanf("%s", str);			
+		// scanf("%s", str);			
 		step(&cpu);
 		printMemory(&cpu);
 		printf("\n\n\n");
@@ -1476,9 +1476,9 @@ int main(int argc, char *argv[]) {
 		printf("cpu->y: %i\n", cpu.y);
 		printf("cpu->ps: %i\n\n", cpu.ps);
 		
-		// if(cpu.pc == 0) {
-		// 	break;
-		// }
+		if(cpu.pc == 17856) {
+			break;
+		}
 	}
 	
 	printMemory(&cpu);
@@ -1492,7 +1492,10 @@ int main(int argc, char *argv[]) {
 	printf("cpu->cycles: %i\n", cpu.cycles);
 	// printf("%s\n", );
 	// printbitssimple(cpu.ps);	
-	printf("MEMORY: %x\n", cpu.memory[0x0040]);
+	printf("MEMORY 0: %x\n", cpu.memory[0x022A]);
+	printf("MEMORY 1: %x\n", cpu.memory[0xA9]);
+	printf("MEMORY 2: %x\n", cpu.memory[0x71]);
+	printf("MEMORY 3: %x\n", cpu.memory[0x01DD]);
 	
 	freeCPU(&cpu);
 
