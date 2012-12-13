@@ -372,8 +372,7 @@ test03:
 	STA $0210
 	JMP theend
 	
-	
-; expected result: $40 = 0x42
+; expected result: $40 = 0x42 ; 700
 test04:
 	LDA #$E8 ;originally:#$7C ; ok
 	STA $20 ; ok

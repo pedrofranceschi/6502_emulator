@@ -1446,7 +1446,7 @@ int main(int argc, char *argv[]) {
 	
 	cpu.pc = 0x4000;
 	writeMemory(&cpu, program, cpu.pc, program_length);
-	// cpu.pc += 559;
+	// cpu.pc += 559; // 700
 
 	// char *buf = malloc(sizeof(char) * 2);
 	// buf[0] = 0xC0;
@@ -1502,6 +1502,7 @@ int main(int argc, char *argv[]) {
 	printf("MEMORY 1: %x\n", cpu.memory[0xA9]);
 	printf("MEMORY 2: %x\n", cpu.memory[0x71]);
 	printf("MEMORY 3: %x\n", cpu.memory[0x01DD]);
+	printf("MEMORY final: %x\n", cpu.memory[0x0210]);
 	
 	freeCPU(&cpu);
 
