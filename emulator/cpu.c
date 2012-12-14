@@ -145,6 +145,7 @@ int logicalShiftRight(CPU *cpu, int operation_byte) {
 
 void addWithCarry(CPU *cpu, int operation_byte) {
 	int accumulator_with_carry = ((cpu->ps & 0x1) != 0 ? (cpu->a | 0x100) : cpu->a); // if carry bit is on, (accumulator + carry) = accumulator with bit 8 on
+	printf("accumulator_with_carry: %i\n", accumulator_with_carry);
 	int result = accumulator_with_carry + operation_byte;
 	
 	cpu->ps = ((result >> 0x8) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
@@ -1446,7 +1447,8 @@ int main(int argc, char *argv[]) {
 	
 	cpu.pc = 0x4000;
 	writeMemory(&cpu, program, cpu.pc, program_length);
-	// cpu.pc += 559; // 700
+	// cpu.pc += 559; // 700 // 799
+	cpu.pc += 799;
 
 	// char *buf = malloc(sizeof(char) * 2);
 	// buf[0] = 0xC0;
@@ -1472,15 +1474,15 @@ int main(int argc, char *argv[]) {
 	
 	for(;;) {
 		printf("cpu->pc: %i\n", cpu.pc);
-		// scanf("%s", str);			
+		scanf("%s", str);			
 		step(&cpu);
 		printMemory(&cpu);
 		printf("\n\n\n");
-		printf("cpu->sp: %i\n", cpu.sp);
-		printf("cpu->a: %i\n", cpu.a);
-		printf("cpu->x: %i\n", cpu.x);
-		printf("cpu->y: %i\n", cpu.y);
-		printf("cpu->ps: %i\n\n", cpu.ps);
+		printf("cpu->sp: %x\n", cpu.sp);
+		printf("cpu->a: %x\n", cpu.a);
+		printf("cpu->x: %x\n", cpu.x);
+		printf("cpu->y: %x\n", cpu.y);
+		printf("cpu->ps: %x\n\n", cpu.ps);
 		
 		if(cpu.pc == 17856) {
 			break;
@@ -1490,11 +1492,11 @@ int main(int argc, char *argv[]) {
 	printMemory(&cpu);
 	
 	printf("### results:\n");
-	printf("cpu->sp: %i\n", cpu.sp);
-	printf("cpu->a: %i\n", cpu.a);
-	printf("cpu->x: %i\n", cpu.x);
-	printf("cpu->y: %i\n", cpu.y);
-	printf("cpu->ps: %i\n", cpu.ps);
+	printf("cpu->sp: %x\n", cpu.sp);
+	printf("cpu->a: %x\n", cpu.a);
+	printf("cpu->x: %x\n", cpu.x);
+	printf("cpu->y: %x\n", cpu.y);
+	printf("cpu->ps: %x\n", cpu.ps);
 	printf("cpu->cycles: %i\n", cpu.cycles);
 	// printf("%s\n", );
 	// printbitssimple(cpu.ps);	

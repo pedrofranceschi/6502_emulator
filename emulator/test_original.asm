@@ -445,6 +445,7 @@ test06:
 ; RESET TO CARRY FLAG = 0
 	ROL
 
+	; 17183
 	LDA #$6A
 	STA $50
 	LDA #$6B
@@ -453,6 +454,8 @@ test06:
 	STA $60
 	LDA #$A2
 	STA $61
+	
+	; OK 17199
 	
 	LDA #$FF
 	ADC #$FF
