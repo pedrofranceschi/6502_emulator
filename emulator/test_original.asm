@@ -724,7 +724,7 @@ bmi2:
 	; BVC
 	EOR #$30
 	STA $32
-	ADC $00,X
+	ADC $00,X ; OK until here 17614
 	BVC bvc1 ; not taken
 	LDA #$03
 bvc1:

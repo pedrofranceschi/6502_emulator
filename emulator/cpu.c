@@ -603,7 +603,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x50: { // BVC rel
 			int branch_address = cpu->memory[cpu->pc++];
-			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) != 0)); // if bit 6 is on
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) == 0)); // if bit 6 is off
 			cpu->cycles += 2;
 			
 			break;
@@ -765,7 +765,7 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0x70: { // BVS rel
 			int branch_address = cpu->memory[cpu->pc++];
-			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) == 0)); // if bit 6 is off
+			branchToRelativeAddressIf(cpu, branch_address, ((cpu->ps & 0x40) != 0)); // if bit 6 is on
 			cpu->cycles += 2;
 			
 			break;
@@ -1449,6 +1449,7 @@ int main(int argc, char *argv[]) {
 	writeMemory(&cpu, program, cpu.pc, program_length);
 	// cpu.pc += 559; // 700 // 799
 	// cpu.pc += 799; // test 06
+	cpu.pc += 1192; // test 09
 
 	// char *buf = malloc(sizeof(char) * 2);
 	// buf[0] = 0xC0;
@@ -1474,7 +1475,7 @@ int main(int argc, char *argv[]) {
 	
 	for(;;) {
 		printf("cpu->pc: %i\n", cpu.pc);
-		// scanf("%s", str);
+		scanf("%s", str);
 		step(&cpu);
 		printMemory(&cpu);
 		printf("\n\n\n");
@@ -1500,10 +1501,7 @@ int main(int argc, char *argv[]) {
 	printf("cpu->cycles: %i\n", cpu.cycles);
 	// printf("%s\n", );
 	// printbitssimple(cpu.ps);	
-	printf("MEMORY 0: %x\n", cpu.memory[0x022A]);
-	printf("MEMORY 1: %x\n", cpu.memory[0xA9]);
-	printf("MEMORY 2: %x\n", cpu.memory[0x71]);
-	printf("MEMORY 3: %x\n", cpu.memory[0x01DD]);
+	printf("MEMORY 9: %x\n", cpu.memory[0x80]);
 	printf("MEMORY final: %x\n", cpu.memory[0x0210]);
 	
 	freeCPU(&cpu);
