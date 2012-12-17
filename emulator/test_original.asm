@@ -462,6 +462,8 @@ test06:
 	ADC #$FF
 	SBC #$AE
 	
+	; OK
+	
 	STA $40
 	LDX $40
 	ADC $00,X

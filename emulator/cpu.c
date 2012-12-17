@@ -144,7 +144,7 @@ int logicalShiftRight(CPU *cpu, int operation_byte) {
 }
 
 void addWithCarry(CPU *cpu, int operation_byte) {
-	int accumulator_with_carry = ((cpu->ps & 0x1) != 0 ? (cpu->a | 0x100) : cpu->a); // if carry bit is on, (accumulator + carry) = accumulator with bit 8 on
+	int accumulator_with_carry = ((cpu->ps & 0x1) != 0 ? (cpu->a + 1) : cpu->a); // if carry bit is on, (accumulator + carry) = accumulator with bit 8 on
 	printf("accumulator_with_carry: %i\n", accumulator_with_carry);
 	int result = accumulator_with_carry + operation_byte;
 	
@@ -160,12 +160,12 @@ void addWithCarry(CPU *cpu, int operation_byte) {
 }
 
 void subtractWithCarry(CPU *cpu, int operation_byte) {
-	int accumulator_with_not_carry = ((cpu->ps & 0x1) == 0 ? (cpu->a | 0x100) : cpu->a); // if carry bit is off, (accumulator + carry) = accumulator with bit 8 on
+	int accumulator_with_not_carry = ((cpu->ps & 0x1) == 0 ? (cpu->a - 1) : cpu->a); // if carry bit is off, (accumulator + carry) = accumulator with bit 8 on
 	int result = accumulator_with_not_carry - operation_byte;
 	
-	cpu->ps = ((result >> 0x8) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
+	cpu->ps = ((result >> 0x8) != 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 	
-	int complement_result = (char)accumulator_with_not_carry + (char)operation_byte;
+	int complement_result = (char)accumulator_with_not_carry - (char)operation_byte;
 	
 	if(complement_result < -128 || complement_result > 127) { // overflow detection
 		cpu->ps |= 0x40; // set overflow bit on (bit 6)
@@ -1448,7 +1448,7 @@ int main(int argc, char *argv[]) {
 	cpu.pc = 0x4000;
 	writeMemory(&cpu, program, cpu.pc, program_length);
 	// cpu.pc += 559; // 700 // 799
-	cpu.pc += 799;
+	// cpu.pc += 799; // test 06
 
 	// char *buf = malloc(sizeof(char) * 2);
 	// buf[0] = 0xC0;
@@ -1474,7 +1474,7 @@ int main(int argc, char *argv[]) {
 	
 	for(;;) {
 		printf("cpu->pc: %i\n", cpu.pc);
-		scanf("%s", str);			
+		// scanf("%s", str);
 		step(&cpu);
 		printMemory(&cpu);
 		printf("\n\n\n");
