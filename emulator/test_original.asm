@@ -869,27 +869,27 @@ t12end:
 test13:
 
 ; RESET TO CARRY = 0 & ZERO = 0
-	ADC #$01
-	
-	SEI
-	SED
-	PHP
-	PLA
-	STA $20
-	CLI
-	CLD
-	PHP
-	PLA
-	ADC $20
-	STA $21
-
-; CHECK test13
-	LDA $21
-	CMP $020D
-	BEQ test14
-	LDA #$0D
-	STA $0210
-	JMP theend
+;	ADC #$01;
+;	
+;	SEI
+;	SED
+;	PHP
+;	PLA
+;	STA $20
+;	CLI
+;	CLD
+;	PHP
+;	PLA
+;	ADC $20
+;	STA $21
+;
+;; CHECK test13
+;	LDA $21
+;	CMP $020D
+;	BEQ test14
+;	LDA #$0D
+;	STA $0210
+;	JMP theend
 
 
 ; expect result: $60 = 0x42

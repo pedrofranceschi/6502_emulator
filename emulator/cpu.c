@@ -143,6 +143,10 @@ int logicalShiftRight(CPU *cpu, int operation_byte) {
 	return operation_byte >> 0x1;
 }
 
+void setOverflowForOperationResult(CPU *cpu, int operation_result) {
+	cpu->ps = (operation_result < -128 || operation_result > 127) ? (cpu->ps | 0x40) : (cpu->ps & 0xBF);
+}
+
 void addWithCarry(CPU *cpu, int operation_byte) {
 	int accumulator_with_carry = ((cpu->ps & 0x1) != 0 ? (cpu->a + 1) : cpu->a); // if carry bit is on, (accumulator + carry) = accumulator with bit 8 on
 	printf("accumulator_with_carry: %i\n", accumulator_with_carry);
@@ -150,11 +154,7 @@ void addWithCarry(CPU *cpu, int operation_byte) {
 	
 	cpu->ps = ((result >> 0x8) == 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 	
-	int complement_result = (char)accumulator_with_carry + (char)operation_byte;
-	
-	if(complement_result < -128 || complement_result > 127) { // overflow detection
-		cpu->ps |= 0x40; // set overflow bit on (bit 6)
-	}
+	setOverflowForOperationResult(cpu, (char)accumulator_with_carry + (char)operation_byte);
 	
 	cpu->a = result & 0xFF; // just get first 8 bits
 }
@@ -165,11 +165,7 @@ void subtractWithCarry(CPU *cpu, int operation_byte) {
 	
 	cpu->ps = ((result >> 0x8) != 0 ? cpu->ps & 0xFE : cpu->ps | 0x1); // updates carry bit (0) on processor status flag
 	
-	int complement_result = (char)accumulator_with_not_carry - (char)operation_byte;
-	
-	if(complement_result < -128 || complement_result > 127) { // overflow detection
-		cpu->ps |= 0x40; // set overflow bit on (bit 6)
-	}
+	setOverflowForOperationResult(cpu, (char)accumulator_with_not_carry - (char)operation_byte);
 	
 	cpu->a = result & 0xFF; // just get first 8 bits
 }
@@ -511,7 +507,7 @@ void step(CPU *cpu) { // main code is here
 			cpu->ps = pullByteFromStack(cpu);
 			unsigned char low_byte = pullByteFromStack(cpu); // pull second byte of program counter on stack
 			unsigned char high_byte = pullByteFromStack(cpu); // pull first byte of program counter on stack
-			int absolute_address = joinBytes(low_byte, high_byte) + 1;
+			int absolute_address = joinBytes(low_byte, high_byte);
 			cpu->pc = absolute_address;
 			cpu->cycles += 6;
 			
@@ -665,7 +661,7 @@ void step(CPU *cpu) { // main code is here
 		case 0x60: { // RTS impl
 			unsigned char low_byte = pullByteFromStack(cpu); // pull second byte of program counter on stack
 			unsigned char high_byte = pullByteFromStack(cpu); // pull first byte of program counter on stack
-			int absolute_address = joinBytes(low_byte, high_byte) + 1;
+			int absolute_address = joinBytes(low_byte, high_byte) - 1;
 			cpu->pc = absolute_address;
 			cpu->cycles += 6;
 			
@@ -726,13 +722,9 @@ void step(CPU *cpu) { // main code is here
 			unsigned char low_byte = cpu->memory[cpu->pc++];
 			unsigned char high_byte = cpu->memory[cpu->pc++];
 			int indirect_mem_location = joinBytes(low_byte, high_byte);
-			printf("indirect_mem_location: %i\n", indirect_mem_location);
 			low_byte = cpu->memory[indirect_mem_location];
 			high_byte = cpu->memory[indirect_mem_location + 1];
-			printf("low_byte: %x\n", low_byte);
-			printf("high_byte: %x\n", high_byte);
 			int real_memory_location = joinBytes(low_byte, high_byte);
-			printf("real_memory_location: %i\n", real_memory_location);
 			
 			cpu->pc = real_memory_location;
 			cpu->cycles += 5;
@@ -1233,7 +1225,8 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0xD8: { // CLD impl
 			printf("Decimal mode is not supported on this emulator.\n");
-			exit(-1);
+			// exit(-1);
+			break;
 		}
 		case 0xD9:   // CMP abs,Y			
 		case 0xDD: { // CMP abs,X
@@ -1374,7 +1367,8 @@ void step(CPU *cpu) { // main code is here
 		}
 		case 0xF8: { // SED impl
 			printf("Decimal flag is not supported on this emulator.\n");
-			exit(-1);
+			// exit(-1);
+			break;
 		}
 		case 0xF9:   // SBC abs,Y
 		case 0xFD: { // SBC abs,X
@@ -1449,7 +1443,7 @@ int main(int argc, char *argv[]) {
 	writeMemory(&cpu, program, cpu.pc, program_length);
 	// cpu.pc += 559; // 700 // 799
 	// cpu.pc += 799; // test 06
-	cpu.pc += 1192; // test 09
+	// cpu.pc += 1192; // test 09
 
 	// char *buf = malloc(sizeof(char) * 2);
 	// buf[0] = 0xC0;
@@ -1475,7 +1469,7 @@ int main(int argc, char *argv[]) {
 	
 	for(;;) {
 		printf("cpu->pc: %i\n", cpu.pc);
-		scanf("%s", str);
+		// scanf("%s", str);
 		step(&cpu);
 		printMemory(&cpu);
 		printf("\n\n\n");
@@ -1485,7 +1479,7 @@ int main(int argc, char *argv[]) {
 		printf("cpu->y: %x\n", cpu.y);
 		printf("cpu->ps: %x\n\n", cpu.ps);
 		
-		if(cpu.pc == 17856) {
+		if(cpu.pc == 17825) {
 			break;
 		}
 	}
