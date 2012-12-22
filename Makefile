@@ -1,5 +1,5 @@
 FILES += cpu.c
-FILES += main.c
+FILES += test.c
 EXECUTABLE = 6502_emulator
 
 all:
