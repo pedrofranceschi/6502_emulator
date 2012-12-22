@@ -1,4 +1,5 @@
 FILES += cpu.c
+FILES += main.c
 EXECUTABLE = 6502_emu
 
 all:
