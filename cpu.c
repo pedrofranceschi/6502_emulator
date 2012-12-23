@@ -1224,8 +1224,9 @@ void step(CPU *cpu) { // main code is here
 			break;
 		}
 		case 0xD8: { // CLD impl
-			printf("Decimal mode is not supported on this emulator.\n");
-			// exit(-1);
+			cpu->ps &= 0xF7;
+			cpu->cycles += 2;
+			
 			break;
 		}
 		case 0xD9:   // CMP abs,Y			
