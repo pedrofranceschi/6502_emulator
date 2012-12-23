@@ -25,7 +25,7 @@ void readMemory(CPU *cpu, char *buffer, int start, int offset) {
 void printMemory(CPU *cpu) {
 	int i, j;
 
-	for(i = 0; i < 4; i++) {
+	for(i = 0; i < MEMORY_PAGES; i++) {
 		printf("=== Page %i\n", i);
 		for(j = 0;  j < PAGE_SIZE; j++) {
 			printf("%x ", cpu->memory[(i * PAGE_SIZE) + j]);
