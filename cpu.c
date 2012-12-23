@@ -202,8 +202,14 @@ void step(CPU *cpu) { // main code is here
 	printf("Running opcode: %x\n", currentOpcode);
 	switch(currentOpcode) {
 		case 0x00: { // BRK impl
-			printf("BREAK. \n");
-			exit(0);
+			int program_counter = cpu->pc - 1;
+			pushByteToStack(cpu, program_counter >> 0x8); // push second byte of program counter on stack
+			pushByteToStack(cpu, program_counter & 0xFF); // push first byte of program counter on stack
+			pushByteToStack(cpu, cpu->ps);
+			cpu->pc = joinBytes(cpu->memory[0xFFFE], cpu->memory[0xFFFF]);
+			cpu->ps |= 0x10; // set break flag on
+			cpu->cycles += 7;
+			
 			break;
 		}
 		case 0x01: { // ORA ind,X
