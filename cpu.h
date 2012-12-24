@@ -6,7 +6,7 @@
 #define MEMORY_SIZE MEMORY_PAGES * PAGE_SIZE
 
 typedef struct {
-	unsigned char *memory;
+	unsigned char **memory;
 	// int programLength;
 	
 	// REGISTERS

@@ -96,8 +96,8 @@ int main(int argc, char *argv[]) {
 	printf("cpu->cycles: %i\n", cpu.cycles);
 	// printf("%s\n", );
 	// printbitssimple(cpu.ps);	
-	printf("MEMORY 9: %x\n", cpu.memory[0x80]);
-	printf("MEMORY final: %x\n", cpu.memory[0x0210]);
+	printf("MEMORY 9: %x\n", *cpu.memory[0x80]);
+	printf("MEMORY final: %x\n", *cpu.memory[0x0210]);
 
 	freeCPU(&cpu);
 
